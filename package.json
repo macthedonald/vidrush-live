@@ -1,0 +1,13 @@
+{
+  "name": "vidrush-live",
+  "private": true,
+  "type": "module",
+  "description": "VidRush Live — agentic video studio (morphic-style chat + HyperFrames/FFmpeg two-tier renderer). Spike phase.",
+  "scripts": {
+    "spike:assets": "node spike/gen-assets.mjs",
+    "spike:body": "node spike/render-ffmpeg.mjs"
+  },
+  "dependencies": {
+    "hyperframes": "latest"
+  }
+}

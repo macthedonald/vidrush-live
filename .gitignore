@@ -1,0 +1,6 @@
+node_modules/
+spike/assets/
+spike/out/
+hook/out/
+hook/node_modules/
+.debug/
