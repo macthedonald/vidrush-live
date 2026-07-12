@@ -4,3 +4,5 @@ spike/out/
 hook/out/
 hook/node_modules/
 .debug/
+app-live/node_modules/
+app-live/.next/

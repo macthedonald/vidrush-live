@@ -5,6 +5,7 @@ import { fetchTool } from '@/lib/tools/fetch'
 import { askQuestionTool } from '@/lib/tools/question'
 import { searchTool } from '@/lib/tools/search'
 import { createTodoTools, type TodoItem } from '@/lib/tools/todo'
+import { createWriteScriptTool } from '@/lib/tools/video/write-script'
 import type { SearchMode } from '@/lib/types/search'
 
 // Re-export TodoItem for external use
@@ -34,14 +35,16 @@ export type UIDataTypes = {
   sourceUrl?: { url: string }
 }
 
-// Create todo tools instance for type inference
+// Create tool instances for type inference
 const todoTools = createTodoTools()
+const writeScriptTool = createWriteScriptTool('anthropic:claude-sonnet-5')
 
 export type UITools = {
   search: InferUITool<typeof searchTool>
   fetch: InferUITool<typeof fetchTool>
   askQuestion: InferUITool<typeof askQuestionTool>
   todoWrite: InferUITool<typeof todoTools.todoWrite>
+  writeScript: InferUITool<typeof writeScriptTool>
   // Dynamic tools will be added at runtime
   [key: string]: any
 }

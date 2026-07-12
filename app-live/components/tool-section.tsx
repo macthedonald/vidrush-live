@@ -6,6 +6,7 @@ import type { ToolPart, UIDataTypes, UIMessage, UITools } from '@/lib/types/ai'
 
 import FetchSection from './fetch-section'
 import { QuestionConfirmation } from './question-confirmation'
+import ScriptSection from './script-section'
 import { SearchSection } from './search-section'
 import { ToolTodoDisplay } from './tool-todo-display'
 
@@ -88,6 +89,17 @@ export function ToolSection({
           isOpen={isOpen}
           onOpenChange={onOpenChange}
           status={status}
+          borderless={borderless}
+          isFirst={isFirst}
+          isLast={isLast}
+        />
+      )
+    case 'tool-writeScript':
+      return (
+        <ScriptSection
+          tool={tool as ToolPart<'writeScript'>}
+          isOpen={isOpen}
+          onOpenChange={onOpenChange}
           borderless={borderless}
           isFirst={isFirst}
           isLast={isLast}
