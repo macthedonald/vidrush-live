@@ -6,19 +6,20 @@
 // instead of shelling out to ffmpeg itself, keeping heavy renders off serverless.
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
-import { rm } from 'node:fs/promises'
+import { rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import os from 'node:os'
 
 import { renderStoryboard, type RenderInput } from './render.ts'
 import { storageConfigured, uploadFile } from './storage.ts'
+import { generateVoiceover } from './voice.ts'
 
 const app = new Hono()
 
 const AUTH_TOKEN = process.env.RENDER_WORKER_TOKEN || ''
 
-// Simple bearer-token gate so the endpoint isn't open to the world.
-app.use('/render', async (c, next) => {
+// Simple bearer-token gate so the endpoints aren't open to the world.
+const requireAuth = async (c: any, next: any) => {
   if (AUTH_TOKEN) {
     const auth = c.req.header('authorization') || ''
     if (auth !== `Bearer ${AUTH_TOKEN}`) {
@@ -26,9 +27,52 @@ app.use('/render', async (c, next) => {
     }
   }
   await next()
-})
+}
+app.use('/render', requireAuth)
+app.use('/voiceover', requireAuth)
 
 app.get('/health', c => c.json({ ok: true, ffmpeg: process.env.FFMPEG_PATH || 'ffmpeg' }))
+
+// TTS: text → mp3 (uploaded to storage) + real word timings.
+app.post('/voiceover', async c => {
+  let body: { text?: string; voiceId?: string; modelId?: string; key?: string }
+  try {
+    body = await c.req.json()
+  } catch {
+    return c.json({ error: 'invalid JSON body' }, 400)
+  }
+  if (!body?.text?.trim()) return c.json({ error: 'text is required' }, 400)
+  try {
+    const vo = await generateVoiceover(body.text, {
+      voiceId: body.voiceId,
+      modelId: body.modelId
+    })
+    const audioBuf = Buffer.from(vo.audioBase64, 'base64')
+    if (storageConfigured()) {
+      const { mkdir } = await import('node:fs/promises')
+      const dir = path.join(os.tmpdir(), `vo-${Date.now()}`)
+      await mkdir(dir, { recursive: true })
+      const file = path.join(dir, 'voice.mp3')
+      await writeFile(file, audioBuf)
+      const key =
+        body.key?.replace(/^\/+/, '') ||
+        `voiceovers/${new Date().toISOString().slice(0, 10)}/${path.basename(dir)}.mp3`
+      const url = await uploadFile(file, key, 'audio/mpeg')
+      await rm(dir, { recursive: true, force: true }).catch(() => {})
+      return c.json({ audioUrl: url, words: vo.words, durationSec: vo.durationSec, voiceId: vo.voiceId })
+    }
+    // No storage → return base64 so the caller can persist it however it likes.
+    return c.json({
+      audioBase64: vo.audioBase64,
+      words: vo.words,
+      durationSec: vo.durationSec,
+      voiceId: vo.voiceId
+    })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'voiceover failed'
+    return c.json({ error: message }, 500)
+  }
+})
 
 app.post('/render', async c => {
   let payload: { input?: RenderInput; key?: string }

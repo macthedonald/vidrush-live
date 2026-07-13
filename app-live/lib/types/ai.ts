@@ -7,6 +7,7 @@ import { searchTool } from '@/lib/tools/search'
 import { createTodoTools, type TodoItem } from '@/lib/tools/todo'
 import { createComposeRenderTool } from '@/lib/tools/video/compose-render'
 import { createCutBeatsTool } from '@/lib/tools/video/cut-beats'
+import { createGenerateVoiceoverTool } from '@/lib/tools/video/generate-voiceover'
 import { createSourceFootageTool } from '@/lib/tools/video/source-footage'
 import { createWriteScriptTool } from '@/lib/tools/video/write-script'
 import type { SearchMode } from '@/lib/types/search'
@@ -44,6 +45,7 @@ const writeScriptTool = createWriteScriptTool('anthropic:claude-sonnet-5')
 const sourceFootageTool = createSourceFootageTool()
 const cutBeatsTool = createCutBeatsTool('anthropic:claude-sonnet-5')
 const composeRenderTool = createComposeRenderTool()
+const generateVoiceoverTool = createGenerateVoiceoverTool()
 
 export type UITools = {
   search: InferUITool<typeof searchTool>
@@ -53,6 +55,7 @@ export type UITools = {
   writeScript: InferUITool<typeof writeScriptTool>
   sourceFootage: InferUITool<typeof sourceFootageTool>
   cutBeats: InferUITool<typeof cutBeatsTool>
+  generateVoiceover: InferUITool<typeof generateVoiceoverTool>
   composeRender: InferUITool<typeof composeRenderTool>
   // Dynamic tools will be added at runtime
   [key: string]: any

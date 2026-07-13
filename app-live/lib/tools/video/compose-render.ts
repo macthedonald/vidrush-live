@@ -1,7 +1,9 @@
 import { tool } from 'ai'
 import { z } from 'zod'
 
+import { kvGetJSON } from '@/lib/engine/kv'
 import { renderStoryboard, type RenderInput, type RenderShot } from '@/lib/engine/render'
+import type { VoiceoverHandle } from './generate-voiceover'
 
 const shotSchema = z.object({
   kind: z.enum(['photo', 'video']),
@@ -43,6 +45,12 @@ const composeRenderSchema = z.object({
     .string()
     .optional()
     .describe('Local path or URL of the voiceover track (wav/mp3)'),
+  voiceoverId: z
+    .string()
+    .optional()
+    .describe(
+      'Voiceover handle from generateVoiceover — its audio is mixed in automatically (preferred over passing voice directly)'
+    ),
   music: z
     .string()
     .optional()
@@ -66,13 +74,22 @@ export function createComposeRenderTool() {
         narration: s.narration,
         words: s.words
       }))
+      // Resolve the voiceover: an explicit `voice` URL wins; otherwise pull the audio
+      // URL from the voiceover handle so the agent only threads the small id.
+      let voice = input.voice
+      if (!voice && input.voiceoverId) {
+        const handle = await kvGetJSON<VoiceoverHandle>(
+          `voiceover:${input.voiceoverId}`
+        )
+        voice = handle?.audioUrl
+      }
       const renderInput: RenderInput = {
         width: input.width ?? 1280,
         height: input.height ?? 720,
         fps: input.fps ?? 30,
         brand: { channel: input.channel, accent: input.accent },
         shots,
-        voice: input.voice,
+        voice,
         music: input.music
       }
 

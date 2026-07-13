@@ -8,6 +8,8 @@ import { generateText } from 'ai'
 
 import { getModel } from '@/lib/utils/registry'
 
+import type { VoiceWord } from './voice'
+
 const WORDS_PER_SEC = 2.4 // ~144 wpm, matching the script duration presets
 
 export interface BeatWord {
@@ -94,6 +96,44 @@ export interface CutBeatsInput {
   fps?: number
   channel?: string
   accent?: string
+  /** Real word timings from a voiceover; when present, shots lock to actual speech. */
+  voiceWords?: VoiceWord[]
+}
+
+// Bind real voiceover word timings onto semantically-cut shots. The concatenation of
+// shot narrations equals the script that was voiced, so we partition the voice words to
+// shots by token count. Shot boundaries tile [0, audioEnd] at each shot's first spoken
+// word (pauses fold into the preceding shot) so the video length locks to the audio with
+// no drift; captions keep the voiceover's absolute word times.
+export function bindVoiceTimings(
+  shots: Omit<BeatShot, 'start' | 'duration' | 'words'>[],
+  voiceWords: VoiceWord[]
+): BeatShot[] {
+  const perShot: VoiceWord[][] = []
+  let wp = 0
+  for (const s of shots) {
+    const n = s.narration.split(/\s+/).filter(Boolean).length
+    perShot.push(voiceWords.slice(wp, wp + n))
+    wp += n
+  }
+  // Any leftover words (LLM dropped/added a token) go to the last shot so nothing is lost.
+  if (wp < voiceWords.length && perShot.length) {
+    perShot[perShot.length - 1].push(...voiceWords.slice(wp))
+  }
+  const audioEnd = voiceWords.length ? voiceWords[voiceWords.length - 1].end : 0
+  const n = shots.length
+  const boundaries: number[] = new Array(n + 1)
+  boundaries[0] = 0
+  for (let i = 1; i < n; i++) {
+    const ws = perShot[i]
+    boundaries[i] = ws.length ? ws[0].start : boundaries[i - 1]
+  }
+  boundaries[n] = audioEnd
+  return shots.map((s, i) => {
+    const start = +boundaries[i].toFixed(3)
+    const duration = +Math.max(0.3, boundaries[i + 1] - boundaries[i]).toFixed(3)
+    return { ...s, start, duration, words: perShot[i] }
+  })
 }
 
 // Segment a script into a timed storyboard skeleton. LLM does the semantic cut; timings
@@ -117,29 +157,36 @@ export async function cutScriptIntoBeats(
   })
 
   const parsed = extractJsonArray(res.text)
-  let cursor = 0
-  const shots: BeatShot[] = parsed
+  // Semantic cores first (narration + visual plan), timings applied after.
+  const cores = parsed
     .filter((b: any) => b && typeof b.narration === 'string' && b.narration.trim())
-    .map((b: any): BeatShot => {
-      const narration = String(b.narration).trim()
-      const wordCount = narration.split(/\s+/).filter(Boolean).length
+    .map((b: any) => ({
+      narration: String(b.narration).trim(),
+      kind: (b.kind === 'video' ? 'video' : 'photo') as 'photo' | 'video',
+      visualQuery: String(b.visualQuery || input.topic || b.narration).trim(),
+      visualIntent: String(b.visualIntent || b.narration).trim()
+    }))
+
+  if (!cores.length) throw new Error('beat segmentation produced no shots')
+
+  const useVoice = !!input.voiceWords?.length
+  let shots: BeatShot[]
+  if (useVoice) {
+    shots = bindVoiceTimings(cores, input.voiceWords!)
+  } else {
+    // Estimate timings from word counts (character-weighted within each shot).
+    let cursor = 0
+    shots = cores.map(core => {
+      const wordCount = core.narration.split(/\s+/).filter(Boolean).length
       const duration = Math.max(1.4, +(wordCount / WORDS_PER_SEC).toFixed(2))
       const start = +cursor.toFixed(3)
-      const kind: 'photo' | 'video' = b.kind === 'video' ? 'video' : 'photo'
-      const shot: BeatShot = {
-        narration,
-        kind,
-        visualQuery: String(b.visualQuery || input.topic || narration).trim(),
-        visualIntent: String(b.visualIntent || narration).trim(),
-        start,
-        duration,
-        words: timeWords(narration, start, duration)
-      }
       cursor += duration
-      return shot
+      return { ...core, start, duration, words: timeWords(core.narration, start, duration) }
     })
+  }
 
-  if (!shots.length) throw new Error('beat segmentation produced no shots')
+  const last = shots[shots.length - 1]
+  const totalSeconds = +(last.start + last.duration).toFixed(2)
 
   return {
     topic: input.topic || '',
@@ -152,7 +199,7 @@ export async function cutScriptIntoBeats(
       accent: input.accent || '#ff2d55'
     },
     shots,
-    totalSeconds: +cursor.toFixed(2),
-    estimatedTimings: true
+    totalSeconds,
+    estimatedTimings: !useVoice
   }
 }

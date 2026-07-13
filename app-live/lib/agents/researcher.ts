@@ -9,6 +9,7 @@ import { createSearchTool } from '../tools/search'
 import { createTodoTools } from '../tools/todo'
 import { createComposeRenderTool } from '../tools/video/compose-render'
 import { createCutBeatsTool } from '../tools/video/cut-beats'
+import { createGenerateVoiceoverTool } from '../tools/video/generate-voiceover'
 import { createSourceFootageTool } from '../tools/video/source-footage'
 import { createWriteScriptTool } from '../tools/video/write-script'
 import { SearchMode } from '../types/search'
@@ -95,6 +96,7 @@ export function createResearcher({
     const sourceFootageTool = createSourceFootageTool()
     const cutBeatsTool = createCutBeatsTool(model)
     const composeRenderTool = createComposeRenderTool()
+    const generateVoiceoverTool = createGenerateVoiceoverTool()
 
     let systemPrompt: string
     let activeToolsList: (keyof ResearcherTools)[] = []
@@ -105,7 +107,7 @@ export function createResearcher({
     switch (searchMode) {
       case 'quick':
         console.log(
-          '[Researcher] Quick mode: maxSteps=20, tools=[search, fetch, writeScript, sourceFootage, cutBeats, composeRender]'
+          '[Researcher] Quick mode: maxSteps=20, tools=[search, fetch, writeScript, sourceFootage, cutBeats, generateVoiceover, composeRender]'
         )
         systemPrompt = getQuickModePrompt(relatedEnabled)
         activeToolsList = [
@@ -114,6 +116,7 @@ export function createResearcher({
           'writeScript',
           'sourceFootage',
           'cutBeats',
+          'generateVoiceover',
           'composeRender'
         ]
         maxSteps = 20
@@ -130,6 +133,7 @@ export function createResearcher({
           'writeScript',
           'sourceFootage',
           'cutBeats',
+          'generateVoiceover',
           'composeRender'
         ]
         console.log(
@@ -149,10 +153,11 @@ export function createResearcher({
 You are also VidRush, an agentic YouTube video producer. When the user wants a video, script, or channel content:
 1. RESEARCH FIRST: use the search and fetch tools to gather real facts, numbers, names, and competitor angles on the topic. Use todos to plan multi-step productions.
 2. Then call writeScript with the topic, target minutes, language/tone, and a distilled researchNotes summary of what you found — never write a script without researching unless the user insists.
-3. BEATS: once a script exists, call cutBeats to segment it into an ordered storyboard of shots — each shot gets a visualQuery, a visualIntent, a still/clip hint, and estimated word-timed captions.
-4. FOOTAGE: for each shot, call sourceFootage with that shot's visualQuery and visualIntent. It pools open archives (Wikimedia, Internet Archive, National Archives) AND the general web via the same search provider you use for research, ranks the candidates, and vision-verifies the best pick. Use the plain search tool for exploratory "what footage exists" questions; use sourceFootage when you need actual usable b-roll for a specific scene.
-5. RENDER: call composeRender with the storyboard shots (each carrying its resolved asset src, start, duration and words) plus any voiceover/music to produce the finished MP4 (Ken Burns, crossfades, karaoke captions, ducked audio). Shots with no asset render as clean brand cards.
-The natural pipeline is writeScript → cutBeats → sourceFootage (per shot) → composeRender. Present returned scripts as-is (they are clean spoken narration) and narrate progress through the pipeline as you go.`
+3. VOICEOVER: call generateVoiceover with the finished script to produce narration audio with real word-level timings. It returns a voiceoverId — carry that id forward (it is small; never try to copy the word timings yourself).
+4. BEATS: call cutBeats to segment the script into an ordered storyboard of shots (each gets a visualQuery, a visualIntent and a still/clip hint). Pass the voiceoverId so the shot durations and captions lock to the actual spoken audio instead of estimates.
+5. FOOTAGE: for each shot, call sourceFootage with that shot's visualQuery and visualIntent. It pools open archives (Wikimedia, Internet Archive, National Archives) AND the general web via the same search provider you use for research, ranks the candidates, and vision-verifies the best pick. Use the plain search tool for exploratory "what footage exists" questions; use sourceFootage when you need actual usable b-roll for a specific scene.
+6. RENDER: call composeRender with the storyboard shots (each carrying its resolved asset src, start, duration and words) and the voiceoverId (its audio is mixed in automatically) to produce the finished MP4 (Ken Burns, crossfades, karaoke captions, ducked audio). Shots with no asset render as clean brand cards.
+The natural pipeline is writeScript → generateVoiceover → cutBeats (with voiceoverId) → sourceFootage (per shot) → composeRender (with voiceoverId). Present returned scripts as-is (they are clean spoken narration) and narrate progress through the pipeline as you go.`
     systemPrompt = systemPrompt + vidrushPrompt
 
     // Build tools object with proper typing
@@ -163,6 +168,7 @@ The natural pipeline is writeScript → cutBeats → sourceFootage (per shot) �
       writeScript: writeScriptTool,
       sourceFootage: sourceFootageTool,
       cutBeats: cutBeatsTool,
+      generateVoiceover: generateVoiceoverTool,
       composeRender: composeRenderTool,
       ...todoTools
     } as ResearcherTools

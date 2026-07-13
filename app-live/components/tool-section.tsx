@@ -10,6 +10,7 @@ import FootageSection from './footage-section'
 import { QuestionConfirmation } from './question-confirmation'
 import RenderSection from './render-section'
 import ScriptSection from './script-section'
+import VoiceoverSection from './voiceover-section'
 import { SearchSection } from './search-section'
 import { ToolTodoDisplay } from './tool-todo-display'
 
@@ -123,6 +124,17 @@ export function ToolSection({
       return (
         <BeatsSection
           tool={tool as ToolPart<'cutBeats'>}
+          isOpen={isOpen}
+          onOpenChange={onOpenChange}
+          borderless={borderless}
+          isFirst={isFirst}
+          isLast={isLast}
+        />
+      )
+    case 'tool-generateVoiceover':
+      return (
+        <VoiceoverSection
+          tool={tool as ToolPart<'generateVoiceover'>}
           isOpen={isOpen}
           onOpenChange={onOpenChange}
           borderless={borderless}

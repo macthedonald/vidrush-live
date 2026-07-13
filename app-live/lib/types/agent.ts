@@ -12,6 +12,7 @@ import type { createSearchTool } from '../tools/search'
 import type { createTodoTools } from '../tools/todo'
 import type { createComposeRenderTool } from '../tools/video/compose-render'
 import type { createCutBeatsTool } from '../tools/video/cut-beats'
+import type { createGenerateVoiceoverTool } from '../tools/video/generate-voiceover'
 import type { createSourceFootageTool } from '../tools/video/source-footage'
 import type { createWriteScriptTool } from '../tools/video/write-script'
 
@@ -23,6 +24,7 @@ export type ResearcherTools = {
   writeScript: ReturnType<typeof createWriteScriptTool>
   sourceFootage: ReturnType<typeof createSourceFootageTool>
   cutBeats: ReturnType<typeof createCutBeatsTool>
+  generateVoiceover: ReturnType<typeof createGenerateVoiceoverTool>
   composeRender: ReturnType<typeof createComposeRenderTool>
 } & ReturnType<typeof createTodoTools>
 
@@ -57,6 +59,9 @@ export type CutBeatsToolInvocation = UIToolInvocation<
 export type ComposeRenderToolInvocation = UIToolInvocation<
   ResearcherTools['composeRender']
 >
+export type GenerateVoiceoverToolInvocation = UIToolInvocation<
+  ResearcherTools['generateVoiceover']
+>
 
 // Union type for all tool invocations
 export type ResearcherToolInvocation =
@@ -68,6 +73,7 @@ export type ResearcherToolInvocation =
   | SourceFootageToolInvocation
   | CutBeatsToolInvocation
   | ComposeRenderToolInvocation
+  | GenerateVoiceoverToolInvocation
 
 // Helper type to extract tool names
 export type ResearcherToolName = keyof ResearcherTools
