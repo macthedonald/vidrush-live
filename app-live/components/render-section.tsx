@@ -114,6 +114,14 @@ export function RenderSection({
         </div>
         {output && isOpen && (
           <div className="space-y-2 px-4 pb-4 text-sm">
+            {output.videoUrl && (
+              <video
+                controls
+                preload="metadata"
+                src={output.videoUrl}
+                className="w-full rounded-md bg-black"
+              />
+            )}
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Mic className="h-3.5 w-3.5" />
@@ -130,9 +138,20 @@ export function RenderSection({
                 </span>
               )}
             </div>
-            <p className="break-all rounded-md bg-muted/40 p-2 text-xs text-muted-foreground">
-              {output.outPath}
-            </p>
+            {output.videoUrl ? (
+              <a
+                href={output.videoUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-block break-all text-xs text-primary underline"
+              >
+                {output.videoUrl}
+              </a>
+            ) : output.outPath ? (
+              <p className="break-all rounded-md bg-muted/40 p-2 text-xs text-muted-foreground">
+                {output.outPath}
+              </p>
+            ) : null}
           </div>
         )}
       </div>

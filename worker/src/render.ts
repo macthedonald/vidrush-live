@@ -1,3 +1,4 @@
+// VENDORED from app-live/lib/engine/render.ts — regenerate with: npm run sync:engine. Do not edit here.
 // VidRush engine — tier-1 FFmpeg renderer, ported server-side from the proven spike.
 // Storyboard (+ resolved assets + voiceover) → finished MP4. Ken Burns on stills, real
 // clips normalized in, drift-free xfade crossfades, word-timed karaoke captions (ASS \k),

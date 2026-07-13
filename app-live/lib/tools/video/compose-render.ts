@@ -1,7 +1,7 @@
 import { tool } from 'ai'
 import { z } from 'zod'
 
-import { renderStoryboard, type RenderShot } from '@/lib/engine/render'
+import { renderStoryboard, type RenderInput, type RenderShot } from '@/lib/engine/render'
 
 const shotSchema = z.object({
   kind: z.enum(['photo', 'video']),
@@ -66,7 +66,7 @@ export function createComposeRenderTool() {
         narration: s.narration,
         words: s.words
       }))
-      const result = await renderStoryboard({
+      const renderInput: RenderInput = {
         width: input.width ?? 1280,
         height: input.height ?? 720,
         fps: input.fps ?? 30,
@@ -74,8 +74,51 @@ export function createComposeRenderTool() {
         shots,
         voice: input.voice,
         music: input.music
-      })
-      return { state: 'complete' as const, ...result }
+      }
+
+      // Production path: offload to the Fly.io render worker (Vercel serverless has no
+      // ffmpeg). The worker renders, uploads to object storage, and returns a URL.
+      const workerUrl = process.env.RENDER_WORKER_URL
+      if (workerUrl) {
+        const res = await fetch(`${workerUrl.replace(/\/$/, '')}/render`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            ...(process.env.RENDER_WORKER_TOKEN
+              ? { authorization: `Bearer ${process.env.RENDER_WORKER_TOKEN}` }
+              : {})
+          },
+          body: JSON.stringify({ input: renderInput })
+        })
+        if (!res.ok) {
+          const msg = await res.text().catch(() => '')
+          throw new Error(`render worker ${res.status}: ${msg.slice(0, 300)}`)
+        }
+        const out = await res.json()
+        return {
+          state: 'complete' as const,
+          videoUrl: out.url as string | undefined,
+          outPath: undefined as string | undefined,
+          totalSeconds: out.totalSeconds as number,
+          shots: out.shots as number,
+          hadVoice: !!out.hadVoice,
+          hadMusic: !!out.hadMusic,
+          fallbacks: (out.fallbacks as number) ?? 0
+        }
+      }
+
+      // Dev/local fallback: render inline when ffmpeg is available on the host.
+      const result = await renderStoryboard(renderInput)
+      return {
+        state: 'complete' as const,
+        videoUrl: undefined as string | undefined,
+        outPath: result.outPath,
+        totalSeconds: result.totalSeconds,
+        shots: result.shots,
+        hadVoice: result.hadVoice,
+        hadMusic: result.hadMusic,
+        fallbacks: result.fallbacks
+      }
     }
   })
 }
