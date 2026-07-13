@@ -77,7 +77,7 @@ describe('RenderMessage', () => {
       container.querySelectorAll(
         '[data-testid="research-process"], [data-testid="answer-section"]'
       )
-    ).map(node => node.getAttribute('data-testid'))
+    ).map((node: Element) => node.getAttribute('data-testid'))
     expect(order).toEqual(['research-process', 'answer-section'])
   })
 })
