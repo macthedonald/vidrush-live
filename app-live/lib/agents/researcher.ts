@@ -7,6 +7,7 @@ import { fetchTool } from '../tools/fetch'
 import { createQuestionTool } from '../tools/question'
 import { createSearchTool } from '../tools/search'
 import { createTodoTools } from '../tools/todo'
+import { createSourceFootageTool } from '../tools/video/source-footage'
 import { createWriteScriptTool } from '../tools/video/write-script'
 import { SearchMode } from '../types/search'
 import { getModel } from '../utils/registry'
@@ -89,6 +90,7 @@ export function createResearcher({
     const askQuestionTool = createQuestionTool(model)
     const todoTools = createTodoTools()
     const writeScriptTool = createWriteScriptTool(model)
+    const sourceFootageTool = createSourceFootageTool()
 
     let systemPrompt: string
     let activeToolsList: (keyof ResearcherTools)[] = []
@@ -99,10 +101,10 @@ export function createResearcher({
     switch (searchMode) {
       case 'quick':
         console.log(
-          '[Researcher] Quick mode: maxSteps=20, tools=[search, fetch, writeScript]'
+          '[Researcher] Quick mode: maxSteps=20, tools=[search, fetch, writeScript, sourceFootage]'
         )
         systemPrompt = getQuickModePrompt(relatedEnabled)
-        activeToolsList = ['search', 'fetch', 'writeScript']
+        activeToolsList = ['search', 'fetch', 'writeScript', 'sourceFootage']
         maxSteps = 20
         searchTool = wrapSearchToolForQuickMode(originalSearchTool)
         break
@@ -110,7 +112,13 @@ export function createResearcher({
       case 'adaptive':
       default:
         systemPrompt = getAdaptiveModePrompt(relatedEnabled)
-        activeToolsList = ['search', 'fetch', 'todoWrite', 'writeScript']
+        activeToolsList = [
+          'search',
+          'fetch',
+          'todoWrite',
+          'writeScript',
+          'sourceFootage'
+        ]
         console.log(
           `[Researcher] Adaptive mode: maxSteps=50, tools=[${activeToolsList.join(', ')}]`
         )
@@ -128,7 +136,7 @@ export function createResearcher({
 You are also VidRush, an agentic YouTube video producer. When the user wants a video, script, or channel content:
 1. RESEARCH FIRST: use the search and fetch tools to gather real facts, numbers, names, and competitor angles on the topic. Use todos to plan multi-step productions.
 2. Then call writeScript with the topic, target minutes, language/tone, and a distilled researchNotes summary of what you found — never write a script without researching unless the user insists.
-3. Search is also your footage scout: when asked about b-roll or visuals, search for what real archival/stock footage exists (e.g. "Apollo 11 launch footage archive") and report concrete findings.
+3. FOOTAGE: call sourceFootage with concrete visual search phrases and an intent describing what the shot must show. It pools open archives (Wikimedia, Internet Archive, National Archives) AND the general web via the same search provider you use for research, ranks the candidates, and vision-verifies the best pick. Use the plain search tool for exploratory "what footage exists" questions; use sourceFootage when you need actual usable b-roll for a specific scene.
 Present returned scripts as-is (they are clean spoken narration); offer next steps (beats, assets, voiceover, render) after delivering a script.`
     systemPrompt = systemPrompt + vidrushPrompt
 
@@ -138,6 +146,7 @@ Present returned scripts as-is (they are clean spoken narration); offer next ste
       fetch: fetchTool,
       askQuestion: askQuestionTool,
       writeScript: writeScriptTool,
+      sourceFootage: sourceFootageTool,
       ...todoTools
     } as ResearcherTools
 

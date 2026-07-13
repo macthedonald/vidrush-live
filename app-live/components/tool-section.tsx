@@ -5,6 +5,7 @@ import { UseChatHelpers } from '@ai-sdk/react'
 import type { ToolPart, UIDataTypes, UIMessage, UITools } from '@/lib/types/ai'
 
 import FetchSection from './fetch-section'
+import FootageSection from './footage-section'
 import { QuestionConfirmation } from './question-confirmation'
 import ScriptSection from './script-section'
 import { SearchSection } from './search-section'
@@ -98,6 +99,17 @@ export function ToolSection({
       return (
         <ScriptSection
           tool={tool as ToolPart<'writeScript'>}
+          isOpen={isOpen}
+          onOpenChange={onOpenChange}
+          borderless={borderless}
+          isFirst={isFirst}
+          isLast={isLast}
+        />
+      )
+    case 'tool-sourceFootage':
+      return (
+        <FootageSection
+          tool={tool as ToolPart<'sourceFootage'>}
           isOpen={isOpen}
           onOpenChange={onOpenChange}
           borderless={borderless}
