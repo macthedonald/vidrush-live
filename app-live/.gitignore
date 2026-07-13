@@ -36,4 +36,4 @@ yarn-error.log*
 next-env.d.ts
 
 # temporary files
-.tmp/
+.tmp/*.mp4

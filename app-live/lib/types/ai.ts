@@ -5,6 +5,8 @@ import { fetchTool } from '@/lib/tools/fetch'
 import { askQuestionTool } from '@/lib/tools/question'
 import { searchTool } from '@/lib/tools/search'
 import { createTodoTools, type TodoItem } from '@/lib/tools/todo'
+import { createComposeRenderTool } from '@/lib/tools/video/compose-render'
+import { createCutBeatsTool } from '@/lib/tools/video/cut-beats'
 import { createSourceFootageTool } from '@/lib/tools/video/source-footage'
 import { createWriteScriptTool } from '@/lib/tools/video/write-script'
 import type { SearchMode } from '@/lib/types/search'
@@ -40,6 +42,8 @@ export type UIDataTypes = {
 const todoTools = createTodoTools()
 const writeScriptTool = createWriteScriptTool('anthropic:claude-sonnet-5')
 const sourceFootageTool = createSourceFootageTool()
+const cutBeatsTool = createCutBeatsTool('anthropic:claude-sonnet-5')
+const composeRenderTool = createComposeRenderTool()
 
 export type UITools = {
   search: InferUITool<typeof searchTool>
@@ -48,6 +52,8 @@ export type UITools = {
   todoWrite: InferUITool<typeof todoTools.todoWrite>
   writeScript: InferUITool<typeof writeScriptTool>
   sourceFootage: InferUITool<typeof sourceFootageTool>
+  cutBeats: InferUITool<typeof cutBeatsTool>
+  composeRender: InferUITool<typeof composeRenderTool>
   // Dynamic tools will be added at runtime
   [key: string]: any
 }

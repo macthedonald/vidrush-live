@@ -10,6 +10,8 @@ import type { fetchTool } from '../tools/fetch'
 import type { createQuestionTool } from '../tools/question'
 import type { createSearchTool } from '../tools/search'
 import type { createTodoTools } from '../tools/todo'
+import type { createComposeRenderTool } from '../tools/video/compose-render'
+import type { createCutBeatsTool } from '../tools/video/cut-beats'
 import type { createSourceFootageTool } from '../tools/video/source-footage'
 import type { createWriteScriptTool } from '../tools/video/write-script'
 
@@ -20,6 +22,8 @@ export type ResearcherTools = {
   askQuestion: ReturnType<typeof createQuestionTool>
   writeScript: ReturnType<typeof createWriteScriptTool>
   sourceFootage: ReturnType<typeof createSourceFootageTool>
+  cutBeats: ReturnType<typeof createCutBeatsTool>
+  composeRender: ReturnType<typeof createComposeRenderTool>
 } & ReturnType<typeof createTodoTools>
 
 // Type alias for the researcher agent using ToolLoopAgent
@@ -47,6 +51,12 @@ export type WriteScriptToolInvocation = UIToolInvocation<
 export type SourceFootageToolInvocation = UIToolInvocation<
   ResearcherTools['sourceFootage']
 >
+export type CutBeatsToolInvocation = UIToolInvocation<
+  ResearcherTools['cutBeats']
+>
+export type ComposeRenderToolInvocation = UIToolInvocation<
+  ResearcherTools['composeRender']
+>
 
 // Union type for all tool invocations
 export type ResearcherToolInvocation =
@@ -56,6 +66,8 @@ export type ResearcherToolInvocation =
   | TodoWriteToolInvocation
   | WriteScriptToolInvocation
   | SourceFootageToolInvocation
+  | CutBeatsToolInvocation
+  | ComposeRenderToolInvocation
 
 // Helper type to extract tool names
 export type ResearcherToolName = keyof ResearcherTools

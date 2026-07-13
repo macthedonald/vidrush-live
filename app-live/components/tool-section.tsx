@@ -4,9 +4,11 @@ import { UseChatHelpers } from '@ai-sdk/react'
 
 import type { ToolPart, UIDataTypes, UIMessage, UITools } from '@/lib/types/ai'
 
+import BeatsSection from './beats-section'
 import FetchSection from './fetch-section'
 import FootageSection from './footage-section'
 import { QuestionConfirmation } from './question-confirmation'
+import RenderSection from './render-section'
 import ScriptSection from './script-section'
 import { SearchSection } from './search-section'
 import { ToolTodoDisplay } from './tool-todo-display'
@@ -110,6 +112,28 @@ export function ToolSection({
       return (
         <FootageSection
           tool={tool as ToolPart<'sourceFootage'>}
+          isOpen={isOpen}
+          onOpenChange={onOpenChange}
+          borderless={borderless}
+          isFirst={isFirst}
+          isLast={isLast}
+        />
+      )
+    case 'tool-cutBeats':
+      return (
+        <BeatsSection
+          tool={tool as ToolPart<'cutBeats'>}
+          isOpen={isOpen}
+          onOpenChange={onOpenChange}
+          borderless={borderless}
+          isFirst={isFirst}
+          isLast={isLast}
+        />
+      )
+    case 'tool-composeRender':
+      return (
+        <RenderSection
+          tool={tool as ToolPart<'composeRender'>}
           isOpen={isOpen}
           onOpenChange={onOpenChange}
           borderless={borderless}

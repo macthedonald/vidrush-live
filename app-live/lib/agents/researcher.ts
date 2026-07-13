@@ -7,6 +7,8 @@ import { fetchTool } from '../tools/fetch'
 import { createQuestionTool } from '../tools/question'
 import { createSearchTool } from '../tools/search'
 import { createTodoTools } from '../tools/todo'
+import { createComposeRenderTool } from '../tools/video/compose-render'
+import { createCutBeatsTool } from '../tools/video/cut-beats'
 import { createSourceFootageTool } from '../tools/video/source-footage'
 import { createWriteScriptTool } from '../tools/video/write-script'
 import { SearchMode } from '../types/search'
@@ -91,6 +93,8 @@ export function createResearcher({
     const todoTools = createTodoTools()
     const writeScriptTool = createWriteScriptTool(model)
     const sourceFootageTool = createSourceFootageTool()
+    const cutBeatsTool = createCutBeatsTool(model)
+    const composeRenderTool = createComposeRenderTool()
 
     let systemPrompt: string
     let activeToolsList: (keyof ResearcherTools)[] = []
@@ -101,10 +105,17 @@ export function createResearcher({
     switch (searchMode) {
       case 'quick':
         console.log(
-          '[Researcher] Quick mode: maxSteps=20, tools=[search, fetch, writeScript, sourceFootage]'
+          '[Researcher] Quick mode: maxSteps=20, tools=[search, fetch, writeScript, sourceFootage, cutBeats, composeRender]'
         )
         systemPrompt = getQuickModePrompt(relatedEnabled)
-        activeToolsList = ['search', 'fetch', 'writeScript', 'sourceFootage']
+        activeToolsList = [
+          'search',
+          'fetch',
+          'writeScript',
+          'sourceFootage',
+          'cutBeats',
+          'composeRender'
+        ]
         maxSteps = 20
         searchTool = wrapSearchToolForQuickMode(originalSearchTool)
         break
@@ -117,7 +128,9 @@ export function createResearcher({
           'fetch',
           'todoWrite',
           'writeScript',
-          'sourceFootage'
+          'sourceFootage',
+          'cutBeats',
+          'composeRender'
         ]
         console.log(
           `[Researcher] Adaptive mode: maxSteps=50, tools=[${activeToolsList.join(', ')}]`
@@ -136,8 +149,10 @@ export function createResearcher({
 You are also VidRush, an agentic YouTube video producer. When the user wants a video, script, or channel content:
 1. RESEARCH FIRST: use the search and fetch tools to gather real facts, numbers, names, and competitor angles on the topic. Use todos to plan multi-step productions.
 2. Then call writeScript with the topic, target minutes, language/tone, and a distilled researchNotes summary of what you found — never write a script without researching unless the user insists.
-3. FOOTAGE: call sourceFootage with concrete visual search phrases and an intent describing what the shot must show. It pools open archives (Wikimedia, Internet Archive, National Archives) AND the general web via the same search provider you use for research, ranks the candidates, and vision-verifies the best pick. Use the plain search tool for exploratory "what footage exists" questions; use sourceFootage when you need actual usable b-roll for a specific scene.
-Present returned scripts as-is (they are clean spoken narration); offer next steps (beats, assets, voiceover, render) after delivering a script.`
+3. BEATS: once a script exists, call cutBeats to segment it into an ordered storyboard of shots — each shot gets a visualQuery, a visualIntent, a still/clip hint, and estimated word-timed captions.
+4. FOOTAGE: for each shot, call sourceFootage with that shot's visualQuery and visualIntent. It pools open archives (Wikimedia, Internet Archive, National Archives) AND the general web via the same search provider you use for research, ranks the candidates, and vision-verifies the best pick. Use the plain search tool for exploratory "what footage exists" questions; use sourceFootage when you need actual usable b-roll for a specific scene.
+5. RENDER: call composeRender with the storyboard shots (each carrying its resolved asset src, start, duration and words) plus any voiceover/music to produce the finished MP4 (Ken Burns, crossfades, karaoke captions, ducked audio). Shots with no asset render as clean brand cards.
+The natural pipeline is writeScript → cutBeats → sourceFootage (per shot) → composeRender. Present returned scripts as-is (they are clean spoken narration) and narrate progress through the pipeline as you go.`
     systemPrompt = systemPrompt + vidrushPrompt
 
     // Build tools object with proper typing
@@ -147,6 +162,8 @@ Present returned scripts as-is (they are clean spoken narration); offer next ste
       askQuestion: askQuestionTool,
       writeScript: writeScriptTool,
       sourceFootage: sourceFootageTool,
+      cutBeats: cutBeatsTool,
+      composeRender: composeRenderTool,
       ...todoTools
     } as ResearcherTools
 
