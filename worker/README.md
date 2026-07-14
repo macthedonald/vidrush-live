@@ -56,22 +56,38 @@ serverless timeouts, and can be pointed at from the app via `RENDER_WORKER_URL`.
 
 ## Deploy
 
-```bash
-# one-time
-fly launch --no-deploy --copy-config --name vidrush-render   # or: fly apps create vidrush-render
+> **Fly app names are globally unique** across all of Fly — if `vidrush-render` is taken,
+> pick your own name and use it everywhere below (and set the `FLY_APP` repo variable for CI).
 
-# secrets
-fly secrets set RENDER_WORKER_TOKEN=… \
+```bash
+# one-time — create the app (choose a unique NAME)
+fly apps create vidrush-render        # or: fly launch --no-deploy --copy-config --name vidrush-render
+
+# secrets (RENDER_WORKER_TOKEN is any string you invent — e.g. `openssl rand -hex 32`)
+fly secrets set --app vidrush-render \
+  RENDER_WORKER_TOKEN=… AI33_API_KEY=… \
   S3_BUCKET=… S3_ACCESS_KEY_ID=… S3_SECRET_ACCESS_KEY=… \
   R2_ACCOUNT_ID=… S3_PUBLIC_BASE_URL=https://cdn.example.com
 
 # ship it
-fly deploy
+fly deploy --app vidrush-render
 ```
 
-Then in the Vercel app set `RENDER_WORKER_URL=https://vidrush-render.fly.dev` (and the
-matching `RENDER_WORKER_TOKEN`). `composeRender` will POST renders here and return the
-resulting MP4 URL.
+**Deploying via GitHub Actions instead** (`.github/workflows/deploy-worker.yml`): add a
+repo secret `FLY_API_TOKEN` from **`fly tokens create org`** (an *org* token — a per-app
+*deploy* token cannot create the app), optionally a repo variable `FLY_APP` if your name
+isn't `vidrush-render`, then run the workflow. Set the Fly *secrets* above once via the
+CLI/dashboard regardless (CI deploys the image; it doesn't set your app secrets).
+
+### The two Vercel vars
+
+- **`RENDER_WORKER_URL`** — your worker's URL after it deploys: `https://<app-name>.fly.dev`
+  (e.g. `https://vidrush-render.fly.dev`). You get this *from* the successful Fly deploy.
+- **`RENDER_WORKER_TOKEN`** — the same secret string you set on the worker above. It just
+  gates the endpoints so only your app can call them.
+
+Set both in the Vercel app; `composeRender` / `generateVoiceover` / `generateMusic` will
+then POST to the worker and return the resulting media URLs.
 
 ## Local dev
 
