@@ -5,12 +5,15 @@ import { UseChatHelpers } from '@ai-sdk/react'
 import type { ToolPart, UIDataTypes, UIMessage, UITools } from '@/lib/types/ai'
 
 import BeatsSection from './beats-section'
+import CloneSection from './clone-section'
 import FetchSection from './fetch-section'
 import FootageSection from './footage-section'
+import MusicSection from './music-section'
 import { QuestionConfirmation } from './question-confirmation'
 import RenderSection from './render-section'
 import ScriptSection from './script-section'
 import VoiceoverSection from './voiceover-section'
+import VoicesSection from './voices-section'
 import { SearchSection } from './search-section'
 import { ToolTodoDisplay } from './tool-todo-display'
 
@@ -135,6 +138,39 @@ export function ToolSection({
       return (
         <VoiceoverSection
           tool={tool as ToolPart<'generateVoiceover'>}
+          isOpen={isOpen}
+          onOpenChange={onOpenChange}
+          borderless={borderless}
+          isFirst={isFirst}
+          isLast={isLast}
+        />
+      )
+    case 'tool-listVoices':
+      return (
+        <VoicesSection
+          tool={tool as ToolPart<'listVoices'>}
+          isOpen={isOpen}
+          onOpenChange={onOpenChange}
+          borderless={borderless}
+          isFirst={isFirst}
+          isLast={isLast}
+        />
+      )
+    case 'tool-cloneVoice':
+      return (
+        <CloneSection
+          tool={tool as ToolPart<'cloneVoice'>}
+          isOpen={isOpen}
+          onOpenChange={onOpenChange}
+          borderless={borderless}
+          isFirst={isFirst}
+          isLast={isLast}
+        />
+      )
+    case 'tool-generateMusic':
+      return (
+        <MusicSection
+          tool={tool as ToolPart<'generateMusic'>}
           isOpen={isOpen}
           onOpenChange={onOpenChange}
           borderless={borderless}

@@ -175,3 +175,101 @@ export async function generateVoiceover(
 
   return { audioUrl, words, durationSec, voiceId }
 }
+
+export type VoiceProvider =
+  | 'elevenlabs'
+  | 'minimax'
+  | 'fishaudio'
+  | 'clone'
+  | 'edge'
+  | 'kokoro'
+  | 'vbee'
+
+export interface VoiceOption {
+  provider: string
+  id: string
+  name: string
+  desc: string
+  preview?: string
+}
+
+// List AI33 voices for a provider. Returned voice_ids are already provider-prefixed and
+// ready to pass straight to generateVoiceover.
+export async function listVoices(
+  provider: VoiceProvider,
+  opts: {
+    apiKey?: string
+    baseUrl?: string
+    search?: string
+    page?: number
+    pageSize?: number
+  } = {}
+): Promise<VoiceOption[]> {
+  const apiKey = opts.apiKey || process.env.AI33_API_KEY || ''
+  if (!apiKey) throw new Error('AI33_API_KEY is not set')
+  const base = trimBase(opts.baseUrl || process.env.AI33_BASE_URL)
+  const params = new URLSearchParams({
+    provider,
+    page: String(opts.page || 1),
+    page_size: String(opts.pageSize || 60)
+  })
+  if (opts.search) params.set('search', opts.search)
+  if (provider === 'fishaudio' && !opts.search) params.set('sort', 'trending')
+  const d = await jfetch(`${base}/v3/voices?${params}`, {
+    headers: { 'xi-api-key': apiKey }
+  })
+  const list: any[] = d.data || []
+  return list
+    .map((v: any): VoiceOption => ({
+      provider,
+      id: v.voice_id || v.id,
+      name: v.name || v.voice_name || v.title || v.voice_id || v.id,
+      desc:
+        [v.gender, v.language || v.locale, v.age, v.accent, v.description || v.use_case]
+          .filter(Boolean)
+          .join(' · ') || provider,
+      preview: v.preview_url || v.preview_audio_url || v.sample_url || v.audio_url || undefined
+    }))
+    .filter(v => v.id)
+}
+
+// Clone a voice from an audio sample URL. Returns the provider-prefixed clone id.
+export async function cloneVoice(
+  name: string,
+  audioUrl: string,
+  opts: { apiKey?: string; baseUrl?: string } = {}
+): Promise<{ id: string; name: string }> {
+  const apiKey = opts.apiKey || process.env.AI33_API_KEY || ''
+  if (!apiKey) throw new Error('AI33_API_KEY is not set')
+  if (!name?.trim()) throw new Error('clone name is required')
+  if (!audioUrl) throw new Error('a sample audio URL is required')
+  const base = trimBase(opts.baseUrl || process.env.AI33_BASE_URL)
+  const sample = await fetch(audioUrl)
+  if (!sample.ok) throw new Error(`sample fetch ${sample.status}`)
+  const blob = await sample.blob()
+  if (blob.size > 10 * 1024 * 1024) throw new Error('sample too large — AI33 clone limit is 10MB')
+  const fd = new FormData()
+  fd.append('voice_name', name.trim())
+  fd.append('audio_file', blob, 'sample.mp3')
+  const d = await jfetch(`${base}/v3/text-to-speech/voice-clone`, {
+    method: 'POST',
+    headers: { 'xi-api-key': apiKey },
+    body: fd
+  })
+  const vid = d?.data?.voice_id || d?.voice_id
+  if (!vid) throw new Error(d?.error_message || 'AI33 clone: no voice_id returned')
+  return { id: String(vid).startsWith('clone_') ? String(vid) : `clone_${vid}`, name: name.trim() }
+}
+
+// Remaining AI33 credits.
+export async function getCredits(
+  opts: { apiKey?: string; baseUrl?: string } = {}
+): Promise<number | any> {
+  const apiKey = opts.apiKey || process.env.AI33_API_KEY || ''
+  if (!apiKey) throw new Error('AI33_API_KEY is not set')
+  const base = trimBase(opts.baseUrl || process.env.AI33_BASE_URL)
+  const d = await jfetch(`${base}/v1/credits`, {
+    headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' }
+  })
+  return d?.credits ?? d?.data?.credits ?? d
+}

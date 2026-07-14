@@ -10,6 +10,7 @@ import { rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import os from 'node:os'
 
+import { generateMusic } from './music.ts'
 import { renderStoryboard, type RenderInput } from './render.ts'
 import { storageConfigured, uploadFile } from './storage.ts'
 import { generateVoiceover } from './voice.ts'
@@ -30,6 +31,7 @@ const requireAuth = async (c: any, next: any) => {
 }
 app.use('/render', requireAuth)
 app.use('/voiceover', requireAuth)
+app.use('/music', requireAuth)
 
 app.get('/health', c => c.json({ ok: true, ffmpeg: process.env.FFMPEG_PATH || 'ffmpeg' }))
 
@@ -69,6 +71,39 @@ app.post('/voiceover', async c => {
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'voiceover failed'
+    return c.json({ error: message }, 500)
+  }
+})
+
+// Background music via AI33/Suno → audio (mirrored to storage) for the ducked bed.
+app.post('/music', async c => {
+  let body: { prompt?: string; instrumental?: boolean; key?: string }
+  try {
+    body = await c.req.json()
+  } catch {
+    return c.json({ error: 'invalid JSON body' }, 400)
+  }
+  if (!body?.prompt?.trim()) return c.json({ error: 'prompt is required' }, 400)
+  try {
+    const music = await generateMusic(body.prompt, { instrumental: body.instrumental })
+    if (storageConfigured()) {
+      const { mkdir } = await import('node:fs/promises')
+      const dir = path.join(os.tmpdir(), `music-${Date.now()}`)
+      await mkdir(dir, { recursive: true })
+      const file = path.join(dir, 'music.mp3')
+      const audioRes = await fetch(music.audioUrl)
+      if (!audioRes.ok) throw new Error(`Suno audio fetch ${audioRes.status}`)
+      await writeFile(file, Buffer.from(await audioRes.arrayBuffer()))
+      const key =
+        body.key?.replace(/^\/+/, '') ||
+        `music/${new Date().toISOString().slice(0, 10)}/${path.basename(dir)}.mp3`
+      const url = await uploadFile(file, key, 'audio/mpeg')
+      await rm(dir, { recursive: true, force: true }).catch(() => {})
+      return c.json({ audioUrl: url, title: music.title, durationSec: music.durationSec })
+    }
+    return c.json({ audioUrl: music.audioUrl, title: music.title, durationSec: music.durationSec })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'music failed'
     return c.json({ error: message }, 500)
   }
 })

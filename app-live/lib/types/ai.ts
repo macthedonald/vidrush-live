@@ -5,9 +5,12 @@ import { fetchTool } from '@/lib/tools/fetch'
 import { askQuestionTool } from '@/lib/tools/question'
 import { searchTool } from '@/lib/tools/search'
 import { createTodoTools, type TodoItem } from '@/lib/tools/todo'
+import { createCloneVoiceTool } from '@/lib/tools/video/clone-voice'
 import { createComposeRenderTool } from '@/lib/tools/video/compose-render'
 import { createCutBeatsTool } from '@/lib/tools/video/cut-beats'
+import { createGenerateMusicTool } from '@/lib/tools/video/generate-music'
 import { createGenerateVoiceoverTool } from '@/lib/tools/video/generate-voiceover'
+import { createListVoicesTool } from '@/lib/tools/video/list-voices'
 import { createSourceFootageTool } from '@/lib/tools/video/source-footage'
 import { createWriteScriptTool } from '@/lib/tools/video/write-script'
 import type { SearchMode } from '@/lib/types/search'
@@ -46,6 +49,9 @@ const sourceFootageTool = createSourceFootageTool()
 const cutBeatsTool = createCutBeatsTool('anthropic:claude-sonnet-5')
 const composeRenderTool = createComposeRenderTool()
 const generateVoiceoverTool = createGenerateVoiceoverTool()
+const listVoicesTool = createListVoicesTool()
+const cloneVoiceTool = createCloneVoiceTool()
+const generateMusicTool = createGenerateMusicTool()
 
 export type UITools = {
   search: InferUITool<typeof searchTool>
@@ -56,6 +62,9 @@ export type UITools = {
   sourceFootage: InferUITool<typeof sourceFootageTool>
   cutBeats: InferUITool<typeof cutBeatsTool>
   generateVoiceover: InferUITool<typeof generateVoiceoverTool>
+  listVoices: InferUITool<typeof listVoicesTool>
+  cloneVoice: InferUITool<typeof cloneVoiceTool>
+  generateMusic: InferUITool<typeof generateMusicTool>
   composeRender: InferUITool<typeof composeRenderTool>
   // Dynamic tools will be added at runtime
   [key: string]: any
