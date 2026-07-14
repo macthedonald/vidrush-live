@@ -1,0 +1,36 @@
+name: Deploy render worker (Fly.io)
+
+# Deploys worker/ to Fly.io. Runs on changes to the worker or the shared engine it
+# vendors, and can be triggered manually. Requires the FLY_API_TOKEN repo secret.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'worker/**'
+      - 'app-live/lib/engine/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: fly deploy
+    runs-on: ubuntu-latest
+    concurrency: deploy-render-worker
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Refresh the vendored engine (render/voice/music) from app-live before shipping.
+      - name: Sync engine
+        working-directory: worker
+        run: npm run sync:engine
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy
+        working-directory: worker
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl deploy --remote-only --config fly.toml
