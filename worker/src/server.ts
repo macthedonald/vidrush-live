@@ -35,7 +35,7 @@ app.get('/health', c => c.json({ ok: true, ffmpeg: process.env.FFMPEG_PATH || 'f
 
 // TTS: text → mp3 (uploaded to storage) + real word timings.
 app.post('/voiceover', async c => {
-  let body: { text?: string; voiceId?: string; modelId?: string; key?: string }
+  let body: { text?: string; voiceId?: string; key?: string }
   try {
     body = await c.req.json()
   } catch {
@@ -43,17 +43,17 @@ app.post('/voiceover', async c => {
   }
   if (!body?.text?.trim()) return c.json({ error: 'text is required' }, 400)
   try {
-    const vo = await generateVoiceover(body.text, {
-      voiceId: body.voiceId,
-      modelId: body.modelId
-    })
-    const audioBuf = Buffer.from(vo.audioBase64, 'base64')
+    const vo = await generateVoiceover(body.text, { voiceId: body.voiceId })
+    // AI33 hosts the audio. If we have durable storage, mirror it there so the URL
+    // outlives the AI33 task; otherwise hand back AI33's URL directly.
     if (storageConfigured()) {
       const { mkdir } = await import('node:fs/promises')
       const dir = path.join(os.tmpdir(), `vo-${Date.now()}`)
       await mkdir(dir, { recursive: true })
       const file = path.join(dir, 'voice.mp3')
-      await writeFile(file, audioBuf)
+      const audioRes = await fetch(vo.audioUrl)
+      if (!audioRes.ok) throw new Error(`AI33 audio fetch ${audioRes.status}`)
+      await writeFile(file, Buffer.from(await audioRes.arrayBuffer()))
       const key =
         body.key?.replace(/^\/+/, '') ||
         `voiceovers/${new Date().toISOString().slice(0, 10)}/${path.basename(dir)}.mp3`
@@ -61,9 +61,8 @@ app.post('/voiceover', async c => {
       await rm(dir, { recursive: true, force: true }).catch(() => {})
       return c.json({ audioUrl: url, words: vo.words, durationSec: vo.durationSec, voiceId: vo.voiceId })
     }
-    // No storage → return base64 so the caller can persist it however it likes.
     return c.json({
-      audioBase64: vo.audioBase64,
+      audioUrl: vo.audioUrl,
       words: vo.words,
       durationSec: vo.durationSec,
       voiceId: vo.voiceId

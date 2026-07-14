@@ -11,7 +11,9 @@ const voiceoverSchema = z.object({
   voiceId: z
     .string()
     .optional()
-    .describe('ElevenLabs voice id (defaults to the configured/house voice)'),
+    .describe(
+      'AI33 provider-prefixed voice id, e.g. "elevenlabs_21m00Tcm4TlvDq8ikWAM", "minimax_Calm_Woman", or a "clone_…" id (defaults to the configured/house voice)'
+    ),
   voiceName: z
     .string()
     .optional()
@@ -27,10 +29,11 @@ export interface VoiceoverHandle {
 }
 
 // Generate a voiceover for the script and return a small handle. The audio + word
-// timings are produced by ElevenLabs (via the render worker when configured, so the
-// mp3 lands in object storage); the bulky word-timings array is stored in KV under
-// voiceoverId so cutBeats can lock the storyboard to real speech and composeRender can
-// pull the audio URL — without the model ever having to carry that data.
+// timings are produced by AI33 (ElevenLabs/MiniMax/Fish/cloned voices) — via the render
+// worker when configured, so the mp3 is mirrored to durable storage; the bulky
+// word-timings array is stored in KV under voiceoverId so cutBeats can lock the
+// storyboard to real speech and composeRender can pull the audio URL — without the
+// model ever having to carry that data.
 export function createGenerateVoiceoverTool() {
   return tool({
     description:
@@ -64,11 +67,11 @@ export function createGenerateVoiceoverTool() {
           voiceId: out.voiceId || voiceId || ''
         }
       } else {
-        // Dev/local fallback: call ElevenLabs directly. No upload, so there's no audio
-        // URL to play/mix — a worker + storage is required for a playable narration.
+        // No worker configured: call AI33 directly. AI33 hosts the audio, so we still get
+        // a playable URL (the render worker downloads it at compose time).
         const vo = await generateVoiceover(script, { voiceId, abortSignal })
         handle = {
-          audioUrl: undefined,
+          audioUrl: vo.audioUrl,
           words: vo.words,
           durationSec: vo.durationSec,
           voiceId: vo.voiceId

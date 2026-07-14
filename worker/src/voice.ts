@@ -1,10 +1,12 @@
 // VENDORED from app-live/lib/engine/voice.ts — regenerate with: npm run sync:engine. Do not edit here.
-// VidRush engine — voiceover (TTS) with real word-level timings.
-// Uses ElevenLabs' "with-timestamps" endpoint: it returns the spoken audio plus a
-// per-character alignment, which we group into word timings. Those real timings drive
-// the storyboard (shot durations = actual spoken durations) and the karaoke captions,
-// replacing the character-weighted estimates from cutBeats. Shared with the render
-// worker (vendored) so voiceover can run wherever storage lives.
+// VidRush engine — voiceover (TTS) via AI33 (https://api.ai33.pro), the same gateway the
+// studio used. AI33 fronts ElevenLabs / MiniMax / Fish / cloned voices under one key.
+// It is task-based: POST /v3/text-to-speech (multipart) returns a task_id; poll
+// GET /v1/task/{id} until "done", then the audio lives at metadata.audio_url. With
+// with_transcript=true the metadata also carries word-level timings, which drive the
+// storyboard (shot durations = real speech) and the karaoke captions. Voice ids are
+// provider-prefixed (e.g. "elevenlabs_21m00Tcm4TlvDq8ikWAM", "minimax_…", "clone_…").
+// Shared with the render worker (vendored) so voiceover can run wherever it's convenient.
 
 export interface VoiceWord {
   word: string
@@ -13,20 +15,85 @@ export interface VoiceWord {
 }
 
 export interface VoiceResult {
-  audioBase64: string
-  format: 'mp3'
+  /** AI33-hosted URL of the generated audio (mp3). */
+  audioUrl: string
   words: VoiceWord[]
   durationSec: number
   voiceId: string
 }
 
-// A widely-available default ElevenLabs voice ("Rachel"); override per call or via env.
-const DEFAULT_VOICE_ID = '21m00Tcm4TlvDq8ikWAM'
-const DEFAULT_MODEL_ID = 'eleven_multilingual_v2'
+export const AI33_DEFAULT_BASE = 'https://api.ai33.pro'
+// Default = ElevenLabs "Rachel" through AI33 (provider-prefixed id).
+const DEFAULT_VOICE_ID = 'elevenlabs_21m00Tcm4TlvDq8ikWAM'
 
-// Group ElevenLabs' per-character alignment into word timings. A word runs from the
-// start time of its first non-space character to the end time of its last one; runs are
-// delimited by whitespace characters.
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+const trimBase = (b?: string) => (b || AI33_DEFAULT_BASE).replace(/\/$/, '')
+
+async function jfetch(url: string, opts: RequestInit): Promise<any> {
+  const r = await fetch(url, opts)
+  let d: any = null
+  try {
+    d = await r.json()
+  } catch {
+    /* non-JSON */
+  }
+  if (!r.ok) {
+    throw new Error(d?.error_message || d?.message || d?.error || `AI33 HTTP ${r.status}`)
+  }
+  return d
+}
+
+// Poll a task until it completes; returns the task metadata.
+async function pollTask(
+  base: string,
+  key: string,
+  taskId: string,
+  { intervalMs = 2500, timeoutMs = 300000, abortSignal }: { intervalMs?: number; timeoutMs?: number; abortSignal?: AbortSignal } = {}
+): Promise<any> {
+  const t0 = Date.now()
+  while (Date.now() - t0 < timeoutMs) {
+    if (abortSignal?.aborted) throw new Error('aborted')
+    const d = await jfetch(`${base}/v1/task/${taskId}`, {
+      headers: { 'xi-api-key': key, 'Content-Type': 'application/json' },
+      signal: abortSignal
+    })
+    if (d.status === 'done') return d.metadata || {}
+    if (d.status === 'error' || d.status === 'failed' || d.error_message) {
+      throw new Error(d.error_message || 'AI33 task failed')
+    }
+    await sleep(intervalMs)
+  }
+  throw new Error('AI33 task timed out')
+}
+
+// Tolerant word-timestamp extraction from a completed TTS task's metadata (ms → s).
+export function parseTranscriptWords(meta: any): VoiceWord[] {
+  const cand =
+    meta?.words ||
+    meta?.transcript?.words ||
+    meta?.transcript_json?.words ||
+    (Array.isArray(meta?.transcript) ? meta.transcript : null) ||
+    meta?.subtitles ||
+    meta?.alignment?.words ||
+    null
+  if (!Array.isArray(cand) || !cand.length) return []
+  const norm = cand.map((w: any): VoiceWord | null => {
+    const word = w.word ?? w.text ?? w.w
+    let start = w.start ?? w.start_time ?? w.startTime ?? w.s
+    let end = w.end ?? w.end_time ?? w.endTime ?? w.e
+    if (word == null || start == null || end == null) return null
+    if (end > 1000) {
+      start /= 1000
+      end /= 1000
+    }
+    return { word: String(word), start: +start, end: +end }
+  })
+  return norm.every(Boolean) ? (norm as VoiceWord[]) : []
+}
+
+// Group character-level alignment into word timings (kept for providers that return
+// per-character rather than per-word alignment). A word runs from its first non-space
+// character's start to its last one's end; runs are delimited by whitespace.
 export function groupCharsIntoWords(
   characters: string[],
   starts: number[],
@@ -59,67 +126,52 @@ export function groupCharsIntoWords(
   return words
 }
 
-interface ElevenAlignment {
-  characters: string[]
-  character_start_times_seconds: number[]
-  character_end_times_seconds: number[]
-}
-
-// Generate a voiceover for `text`, returning the mp3 (base64) and word timings.
+// Generate a voiceover for `text` via AI33, returning the hosted audio URL and real word
+// timings. voiceId must be provider-prefixed; defaults to ElevenLabs "Rachel".
 export async function generateVoiceover(
   text: string,
   opts: {
     apiKey?: string
+    baseUrl?: string
     voiceId?: string
-    modelId?: string
+    speed?: number
     abortSignal?: AbortSignal
   } = {}
 ): Promise<VoiceResult> {
-  const apiKey = opts.apiKey || process.env.ELEVENLABS_API_KEY || ''
-  if (!apiKey) throw new Error('ELEVENLABS_API_KEY is not set')
+  const apiKey = opts.apiKey || process.env.AI33_API_KEY || ''
+  if (!apiKey) throw new Error('AI33_API_KEY is not set')
   const clean = (text || '').trim()
   if (!clean) throw new Error('no text to voice')
-  const voiceId = opts.voiceId || process.env.ELEVENLABS_VOICE_ID || DEFAULT_VOICE_ID
-  const modelId = opts.modelId || process.env.ELEVENLABS_MODEL_ID || DEFAULT_MODEL_ID
+  const base = trimBase(opts.baseUrl || process.env.AI33_BASE_URL)
+  const voiceId = opts.voiceId || process.env.AI33_VOICE_ID || DEFAULT_VOICE_ID
+  const speed = opts.speed ?? 1
 
-  const res = await fetch(
-    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/with-timestamps?output_format=mp3_44100_128`,
-    {
-      method: 'POST',
-      headers: {
-        'xi-api-key': apiKey,
-        'content-type': 'application/json'
-      },
-      body: JSON.stringify({ text: clean, model_id: modelId }),
-      signal: opts.abortSignal
-    }
-  )
-  if (!res.ok) {
-    const body = await res.text().catch(() => '')
-    throw new Error(`ElevenLabs ${res.status}: ${body.slice(0, 300)}`)
-  }
-  const data = (await res.json()) as {
-    audio_base64?: string
-    alignment?: ElevenAlignment
-    normalized_alignment?: ElevenAlignment
-  }
-  if (!data.audio_base64) throw new Error('ElevenLabs returned no audio')
+  const fd = new FormData()
+  fd.append('text', clean)
+  fd.append('voice_id', voiceId)
+  fd.append('speed', String(speed))
+  fd.append('with_transcript', 'true')
 
-  const align = data.alignment || data.normalized_alignment
-  const words = align
-    ? groupCharsIntoWords(
-        align.characters || [],
-        align.character_start_times_seconds || [],
-        align.character_end_times_seconds || []
-      )
-    : []
-  const durationSec = words.length ? words[words.length - 1].end : 0
-
-  return {
-    audioBase64: data.audio_base64,
-    format: 'mp3',
-    words,
-    durationSec: +durationSec.toFixed(2),
-    voiceId
+  const created = await jfetch(`${base}/v3/text-to-speech`, {
+    method: 'POST',
+    headers: { 'xi-api-key': apiKey },
+    body: fd,
+    signal: opts.abortSignal
+  })
+  if (!created?.success || !created?.task_id) {
+    throw new Error(created?.error_message || 'AI33 TTS: no task_id returned')
   }
+
+  const meta = await pollTask(base, apiKey, created.task_id, {
+    abortSignal: opts.abortSignal
+  })
+  const audioUrl = meta.audio_url || meta.url || meta.output_url
+  if (!audioUrl) throw new Error('AI33 TTS finished but no audio_url in task metadata')
+
+  const words = parseTranscriptWords(meta)
+  const durationSec = words.length
+    ? +words[words.length - 1].end.toFixed(2)
+    : Number(meta.duration || meta.audio_duration || 0)
+
+  return { audioUrl, words, durationSec, voiceId }
 }
