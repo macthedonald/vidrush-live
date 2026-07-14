@@ -1,7 +1,17 @@
+import { fileURLToPath } from 'node:url'
+import path from 'node:path'
+
+// This app lives in the app-live/ subdirectory of a multi-package repo (worker/, spike/,
+// hook/ are siblings). Pin the workspace root here so the build never infers the repo
+// root — which has only spike tooling and a second lockfile — as the base directory.
+const appDir = path.dirname(fileURLToPath(import.meta.url))
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Reverse proxy for PostHog to reduce tracking-blocker interception.
   skipTrailingSlashRedirect: true,
+  turbopack: { root: appDir },
+  outputFileTracingRoot: appDir,
   async rewrites() {
     return [
       {
