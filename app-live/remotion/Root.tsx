@@ -2,6 +2,7 @@
 // The composition's dimensions, fps and length are derived from the storyboard input
 // via calculateMetadata, so a single registered id renders any storyboard.
 import React from 'react'
+
 import { Composition } from 'remotion'
 
 import {

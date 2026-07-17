@@ -1,14 +1,15 @@
 'use client'
 
+import dynamic from 'next/dynamic'
+
 import {
   IconAlertCircle as AlertCircle,
   IconCheck as Check,
   IconChevronDown as ChevronDown,
+  IconMicrophone as Mic,
   IconMovie as Movie,
-  IconMusic as Music,
-  IconMicrophone as Mic
+  IconMusic as Music
 } from '@tabler/icons-react'
-import dynamic from 'next/dynamic'
 
 import { toPublicErrorPayload } from '@/lib/errors/public-error'
 import type { ToolPart } from '@/lib/types/ai'
@@ -108,7 +109,10 @@ export function RenderSection({
         </>
       )}
       <div
-        className={cn('rounded-lg', !borderless && 'border border-border bg-card')}
+        className={cn(
+          'rounded-lg',
+          !borderless && 'border border-border bg-card'
+        )}
       >
         <div
           className="flex cursor-pointer select-none items-center gap-2 p-3"

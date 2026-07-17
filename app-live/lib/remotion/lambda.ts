@@ -7,10 +7,10 @@
 // from env; see docs/REMOTION_LAMBDA.md for the one-time deploy that produces
 // REMOTION_SERVE_URL + REMOTION_FUNCTION_NAME.
 import {
+  type AwsRegion,
   getRenderProgress,
   renderMediaOnLambda,
-  speculateFunctionName,
-  type AwsRegion
+  speculateFunctionName
 } from '@remotion/lambda/client'
 
 import type { StoryboardInput } from '@/remotion/schema'
@@ -27,8 +27,7 @@ export interface LambdaRenderResult {
 export function isLambdaConfigured(): boolean {
   return Boolean(
     process.env.REMOTION_SERVE_URL &&
-      (process.env.REMOTION_AWS_ACCESS_KEY_ID ||
-        process.env.AWS_ACCESS_KEY_ID)
+      (process.env.REMOTION_AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID)
   )
 }
 
@@ -41,7 +40,8 @@ function region(): AwsRegion {
 // Resolve the deployed Lambda function name. Prefer an explicit name; otherwise derive it
 // from the memory/disk/timeout knobs the way `remotion lambda deploy` does.
 function functionName(): string {
-  if (process.env.REMOTION_FUNCTION_NAME) return process.env.REMOTION_FUNCTION_NAME
+  if (process.env.REMOTION_FUNCTION_NAME)
+    return process.env.REMOTION_FUNCTION_NAME
   return speculateFunctionName({
     memorySizeInMb: Number(process.env.REMOTION_LAMBDA_MEMORY || 2048),
     diskSizeInMb: Number(process.env.REMOTION_LAMBDA_DISK || 2048),
@@ -74,16 +74,21 @@ export async function renderStoryboardOnLambda(
     inputProps,
     codec: 'h264',
     imageFormat: 'jpeg',
-    privacy: (process.env.REMOTION_RENDER_PRIVACY as 'public' | 'private') || 'public',
-    downloadBehavior: { type: 'play-in-browser', fileName: null },
+    privacy:
+      (process.env.REMOTION_RENDER_PRIVACY as 'public' | 'private') || 'public',
+    downloadBehavior: { type: 'play-in-browser' },
     ...(process.env.REMOTION_OUTPUT_BUCKET
-      ? { outName: { bucketName: process.env.REMOTION_OUTPUT_BUCKET, key: `renders/${renderKey()}.mp4` } }
+      ? {
+          outName: {
+            bucketName: process.env.REMOTION_OUTPUT_BUCKET,
+            key: `renders/${renderKey()}.mp4`
+          }
+        }
       : {})
   })
 
   // Poll to completion. Lambda renders are fast (frames fan out across invocations), but
   // long enough that we surface progress to the UI via the callback.
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     if (opts.signal?.aborted) throw new Error('render aborted')
     const progress = await getRenderProgress({
@@ -98,7 +103,8 @@ export async function renderStoryboardOnLambda(
     }
     if (progress.done) {
       const url = progress.outputFile
-      if (!url) throw new Error('Remotion Lambda finished without an output URL')
+      if (!url)
+        throw new Error('Remotion Lambda finished without an output URL')
       return {
         url,
         sizeInBytes: progress.outputSizeInBytes ?? undefined,

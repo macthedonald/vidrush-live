@@ -1,5 +1,5 @@
-import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 // This app lives in the app-live/ subdirectory of a multi-package repo (worker/, spike/,
 // hook/ are siblings). Pin the workspace root here so the build never infers the repo

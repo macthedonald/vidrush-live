@@ -48,7 +48,8 @@ export function ImageSection({
     : undefined
 
   const noun = variant === 'thumbnail' ? 'thumbnail' : 'image'
-  const running = variant === 'thumbnail' ? 'Generating thumbnail' : 'Generating image'
+  const running =
+    variant === 'thumbnail' ? 'Generating thumbnail' : 'Generating image'
   const done = variant === 'thumbnail' ? 'Thumbnail' : 'Image'
 
   const header = (
@@ -93,7 +94,12 @@ export function ImageSection({
           )}
         </>
       )}
-      <div className={cn('rounded-lg', !borderless && 'border border-border bg-card')}>
+      <div
+        className={cn(
+          'rounded-lg',
+          !borderless && 'border border-border bg-card'
+        )}
+      >
         <div
           className="flex cursor-pointer select-none items-center gap-2 p-3"
           onClick={() => output && onOpenChange(!isOpen)}

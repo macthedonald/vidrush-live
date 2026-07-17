@@ -6,8 +6,10 @@ import {
   isLambdaConfigured,
   renderStoryboardOnLambda
 } from '@/lib/remotion/lambda'
-import { type StoryboardInput, storyboardInputSchema } from '@/remotion/schema'
+
 import type { VoiceoverHandle } from './generate-voiceover'
+
+import { type StoryboardInput, storyboardInputSchema } from '@/remotion/schema'
 
 const shotSchema = z.object({
   kind: z.enum(['photo', 'video']),

@@ -13,10 +13,10 @@ import MusicSection from './music-section'
 import { QuestionConfirmation } from './question-confirmation'
 import RenderSection from './render-section'
 import ScriptSection from './script-section'
-import VoiceoverSection from './voiceover-section'
-import VoicesSection from './voices-section'
 import { SearchSection } from './search-section'
 import { ToolTodoDisplay } from './tool-todo-display'
+import VoiceoverSection from './voiceover-section'
+import VoicesSection from './voices-section'
 
 interface ToolSectionProps {
   tool: ToolPart

@@ -65,7 +65,11 @@ async function pollTask(
   base: string,
   key: string,
   taskId: string,
-  { intervalMs = 3000, timeoutMs = 300000, abortSignal }: {
+  {
+    intervalMs = 3000,
+    timeoutMs = 300000,
+    abortSignal
+  }: {
     intervalMs?: number
     timeoutMs?: number
     abortSignal?: AbortSignal

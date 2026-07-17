@@ -63,16 +63,16 @@ be the **same version** (they are, via `package.json`).
 
 Set these in the app (Vercel project env or `.env.local`):
 
-| Var | Purpose |
-|-----|---------|
-| `REMOTION_AWS_ACCESS_KEY_ID` | Remotion IAM user access key (or reuse `AWS_ACCESS_KEY_ID`). |
-| `REMOTION_AWS_SECRET_ACCESS_KEY` | Remotion IAM user secret (or `AWS_SECRET_ACCESS_KEY`). |
-| `REMOTION_LAMBDA_REGION` | AWS region, e.g. `us-east-1` (default). |
-| `REMOTION_SERVE_URL` | Serve URL from `sites create` — **required** to render. |
-| `REMOTION_FUNCTION_NAME` | Deployed function name. Optional — derived from the memory/disk/timeout vars if unset. |
-| `REMOTION_LAMBDA_MEMORY` / `_DISK` / `_TIMEOUT` | Match the `functions deploy` flags (defaults 2048/2048/240). |
-| `REMOTION_RENDER_PRIVACY` | `public` (default) or `private` output objects. |
-| `REMOTION_OUTPUT_BUCKET` | Optional explicit S3 bucket for outputs. |
+| Var                                             | Purpose                                                                                |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `REMOTION_AWS_ACCESS_KEY_ID`                    | Remotion IAM user access key (or reuse `AWS_ACCESS_KEY_ID`).                           |
+| `REMOTION_AWS_SECRET_ACCESS_KEY`                | Remotion IAM user secret (or `AWS_SECRET_ACCESS_KEY`).                                 |
+| `REMOTION_LAMBDA_REGION`                        | AWS region, e.g. `us-east-1` (default).                                                |
+| `REMOTION_SERVE_URL`                            | Serve URL from `sites create` — **required** to render.                                |
+| `REMOTION_FUNCTION_NAME`                        | Deployed function name. Optional — derived from the memory/disk/timeout vars if unset. |
+| `REMOTION_LAMBDA_MEMORY` / `_DISK` / `_TIMEOUT` | Match the `functions deploy` flags (defaults 2048/2048/240).                           |
+| `REMOTION_RENDER_PRIVACY`                       | `public` (default) or `private` output objects.                                        |
+| `REMOTION_OUTPUT_BUCKET`                        | Optional explicit S3 bucket for outputs.                                               |
 
 > Remotion reads `REMOTION_AWS_*` first, then falls back to standard `AWS_*` credentials.
 
@@ -92,7 +92,7 @@ The Studio and the in-app `<Player>` render the identical composition, so iterat
 
 ## Why Remotion Lambda over HyperFrames
 
-- **Embeddable, WYSIWYG preview**: `@remotion/player` drops the *same* composition into this
+- **Embeddable, WYSIWYG preview**: `@remotion/player` drops the _same_ composition into this
   Next.js chat UI; HyperFrames' preview is a CLI/dev server you can't embed here.
 - **Self-hosted serverless render in your own AWS**: Remotion Lambda deploys into your
   account. HyperFrames rendering is HeyGen-hosted — there is no "HyperFrames Lambda" you run

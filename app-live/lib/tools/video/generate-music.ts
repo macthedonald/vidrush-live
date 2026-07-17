@@ -20,7 +20,7 @@ const musicSchema = z.object({
 export function createGenerateMusicTool() {
   return tool({
     description:
-      'Generate a background music bed from a text prompt (via AI33/Suno). Returns an audio URL you can pass as composeRender\'s `music` input; it is ducked automatically under the voiceover. Instrumental by default.',
+      "Generate a background music bed from a text prompt (via AI33/Suno). Returns an audio URL you can pass as composeRender's `music` input; it is ducked automatically under the voiceover. Instrumental by default.",
     inputSchema: musicSchema,
     execute: async ({ prompt, instrumental }, { abortSignal }) => {
       // Call AI33/Suno directly. AI33 hosts the resulting mp3, so its URL plugs straight

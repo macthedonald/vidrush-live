@@ -3,6 +3,7 @@ import { z } from 'zod'
 
 import { cutScriptIntoBeats } from '@/lib/engine/beats'
 import { kvGetJSON } from '@/lib/engine/kv'
+
 import type { VoiceoverHandle } from './generate-voiceover'
 
 const cutBeatsSchema = z.object({

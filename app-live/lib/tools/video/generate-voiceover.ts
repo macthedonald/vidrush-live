@@ -1,13 +1,15 @@
 import { tool } from 'ai'
 import { z } from 'zod'
 
-import { generateVoiceover, type VoiceWord } from '@/lib/engine/voice'
 import { kvSetJSON } from '@/lib/engine/kv'
+import { generateVoiceover, type VoiceWord } from '@/lib/engine/voice'
 
 const voiceoverSchema = z.object({
   script: z
     .string()
-    .describe('The full narration script to voice (the clean output of writeScript)'),
+    .describe(
+      'The full narration script to voice (the clean output of writeScript)'
+    ),
   voiceId: z
     .string()
     .optional()

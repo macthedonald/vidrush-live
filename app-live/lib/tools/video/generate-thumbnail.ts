@@ -49,12 +49,15 @@ export function createGenerateThumbnailTool() {
       { concept, titleText, referenceImageUrl },
       { abortSignal }
     ) => {
-      const img = await generateImage(buildThumbnailPrompt(concept, titleText), {
-        model: DEFAULT_THUMBNAIL_MODEL,
-        aspectRatio: '16:9',
-        referenceImages: referenceImageUrl ? [referenceImageUrl] : undefined,
-        abortSignal
-      })
+      const img = await generateImage(
+        buildThumbnailPrompt(concept, titleText),
+        {
+          model: DEFAULT_THUMBNAIL_MODEL,
+          aspectRatio: '16:9',
+          referenceImages: referenceImageUrl ? [referenceImageUrl] : undefined,
+          abortSignal
+        }
+      )
       return {
         state: 'complete' as const,
         imageUrl: img.imageUrl,

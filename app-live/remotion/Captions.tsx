@@ -3,6 +3,7 @@
 // word as it is spoken: unspoken words carry the brand accent, spoken words go white
 // (mirroring the ASS PrimaryColour=white / SecondaryColour=accent karaoke sweep).
 import React from 'react'
+
 import { useCurrentFrame, useVideoConfig } from 'remotion'
 
 import type { Shot } from './schema'

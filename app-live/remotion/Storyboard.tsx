@@ -9,6 +9,7 @@
 //   • a ducked voiceover + music mix (music loops and fades out at the end)
 //   • missing/absent assets fall back to a clean solid-accent brand card (no text)
 import React from 'react'
+
 import {
   AbsoluteFill,
   Audio,
@@ -21,7 +22,12 @@ import {
 } from 'remotion'
 
 import { Captions } from './Captions'
-import { FADE_SECONDS, type Shot, type StoryboardInput, totalSeconds } from './schema'
+import {
+  FADE_SECONDS,
+  type Shot,
+  type StoryboardInput,
+  totalSeconds
+} from './schema'
 
 // A single shot layer: Ken Burns still, cover-fit clip, or a clean accent card.
 const ShotLayer: React.FC<{
@@ -99,10 +105,17 @@ export const Storyboard: React.FC<StoryboardInput> = props => {
         const from = Math.round(shot.start * fps)
         // Own the shot plus a FADE tail (except the last) so the next shot has something
         // to cross-dissolve against.
-        const dur = Math.round((shot.duration + (isLast ? 0 : FADE_SECONDS)) * fps)
+        const dur = Math.round(
+          (shot.duration + (isLast ? 0 : FADE_SECONDS)) * fps
+        )
         const fadeInFrames = i === 0 ? 0 : Math.round(FADE_SECONDS * fps)
         return (
-          <Sequence key={i} from={from} durationInFrames={Math.max(1, dur)} layout="none">
+          <Sequence
+            key={i}
+            from={from}
+            durationInFrames={Math.max(1, dur)}
+            layout="none"
+          >
             <ShotLayer
               shot={shot}
               index={i}
@@ -118,7 +131,9 @@ export const Storyboard: React.FC<StoryboardInput> = props => {
 
       {/* Audio: voiceover full-length; music looped, ducked under the VO, faded out. */}
       {props.voice ? <Audio src={props.voice} /> : null}
-      {props.music ? <MusicBed src={props.music} total={total} ducked={!!props.voice} /> : null}
+      {props.music ? (
+        <MusicBed src={props.music} total={total} ducked={!!props.voice} />
+      ) : null}
     </AbsoluteFill>
   )
 }
