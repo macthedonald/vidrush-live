@@ -9,6 +9,7 @@ import CloneSection from './clone-section'
 import FetchSection from './fetch-section'
 import FootageSection from './footage-section'
 import ImageSection from './image-section'
+import LearnVideoSection from './learn-video-section'
 import MusicSection from './music-section'
 import { QuestionConfirmation } from './question-confirmation'
 import RenderSection from './render-section'
@@ -196,6 +197,17 @@ export function ToolSection({
         <ImageSection
           tool={tool as ToolPart<'generateThumbnail'>}
           variant="thumbnail"
+          isOpen={isOpen}
+          onOpenChange={onOpenChange}
+          borderless={borderless}
+          isFirst={isFirst}
+          isLast={isLast}
+        />
+      )
+    case 'tool-learnFromVideo':
+      return (
+        <LearnVideoSection
+          tool={tool as ToolPart<'learnFromVideo'>}
           isOpen={isOpen}
           onOpenChange={onOpenChange}
           borderless={borderless}

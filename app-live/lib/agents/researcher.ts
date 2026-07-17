@@ -14,6 +14,7 @@ import { createGenerateImageTool } from '../tools/video/generate-image'
 import { createGenerateMusicTool } from '../tools/video/generate-music'
 import { createGenerateThumbnailTool } from '../tools/video/generate-thumbnail'
 import { createGenerateVoiceoverTool } from '../tools/video/generate-voiceover'
+import { createLearnFromVideoTool } from '../tools/video/learn-from-video'
 import { createListVoicesTool } from '../tools/video/list-voices'
 import { createSourceFootageTool } from '../tools/video/source-footage'
 import { createWriteScriptTool } from '../tools/video/write-script'
@@ -107,6 +108,7 @@ export function createResearcher({
     const generateMusicTool = createGenerateMusicTool()
     const generateImageTool = createGenerateImageTool()
     const generateThumbnailTool = createGenerateThumbnailTool()
+    const learnFromVideoTool = createLearnFromVideoTool()
 
     let systemPrompt: string
     let activeToolsList: (keyof ResearcherTools)[] = []
@@ -132,6 +134,7 @@ export function createResearcher({
           'generateMusic',
           'generateImage',
           'generateThumbnail',
+          'learnFromVideo',
           'composeRender'
         ]
         maxSteps = 20
@@ -154,6 +157,7 @@ export function createResearcher({
           'generateMusic',
           'generateImage',
           'generateThumbnail',
+          'learnFromVideo',
           'composeRender'
         ]
         console.log(
@@ -171,6 +175,7 @@ export function createResearcher({
 
 ## Kakkao video production
 You are also Kakkao, an agentic YouTube video producer. When the user wants a video, script, or channel content:
+0. LEARN FROM A VIDEO (optional): if the user submits a YouTube URL to "learn from", "study", or "make one like this", call learnFromVideo FIRST. It watches the reference and returns a style template (hook, phase order, pacing, visual mix, narration devices). Feed those findings into writeScript (tone + researchNotes) and cutBeats so the new video mirrors the reference's structure.
 1. RESEARCH FIRST: use the search and fetch tools to gather real facts, numbers, names, and competitor angles on the topic. Use todos to plan multi-step productions.
 2. Then call writeScript with the topic, target minutes, language/tone, and a distilled researchNotes summary of what you found — never write a script without researching unless the user insists.
 3. VOICEOVER: call generateVoiceover with the finished script to produce narration audio with real word-level timings. It returns a voiceoverId — carry that id forward (it is small; never try to copy the word timings yourself). If the user wants to choose or audition a voice, call listVoices first (ElevenLabs/MiniMax/Fish/etc.) and pass the chosen voiceId; to narrate in the user's own voice, cloneVoice from a sample URL and use the returned clone id.
@@ -197,6 +202,7 @@ The natural pipeline is writeScript → generateVoiceover → cutBeats (with voi
       generateMusic: generateMusicTool,
       generateImage: generateImageTool,
       generateThumbnail: generateThumbnailTool,
+      learnFromVideo: learnFromVideoTool,
       composeRender: composeRenderTool,
       ...todoTools
     } as ResearcherTools

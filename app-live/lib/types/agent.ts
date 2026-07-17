@@ -17,6 +17,7 @@ import type { createGenerateImageTool } from '../tools/video/generate-image'
 import type { createGenerateMusicTool } from '../tools/video/generate-music'
 import type { createGenerateThumbnailTool } from '../tools/video/generate-thumbnail'
 import type { createGenerateVoiceoverTool } from '../tools/video/generate-voiceover'
+import type { createLearnFromVideoTool } from '../tools/video/learn-from-video'
 import type { createListVoicesTool } from '../tools/video/list-voices'
 import type { createSourceFootageTool } from '../tools/video/source-footage'
 import type { createWriteScriptTool } from '../tools/video/write-script'
@@ -35,6 +36,7 @@ export type ResearcherTools = {
   generateMusic: ReturnType<typeof createGenerateMusicTool>
   generateImage: ReturnType<typeof createGenerateImageTool>
   generateThumbnail: ReturnType<typeof createGenerateThumbnailTool>
+  learnFromVideo: ReturnType<typeof createLearnFromVideoTool>
   composeRender: ReturnType<typeof createComposeRenderTool>
 } & ReturnType<typeof createTodoTools>
 
@@ -87,6 +89,9 @@ export type GenerateImageToolInvocation = UIToolInvocation<
 export type GenerateThumbnailToolInvocation = UIToolInvocation<
   ResearcherTools['generateThumbnail']
 >
+export type LearnFromVideoToolInvocation = UIToolInvocation<
+  ResearcherTools['learnFromVideo']
+>
 
 // Union type for all tool invocations
 export type ResearcherToolInvocation =
@@ -104,6 +109,7 @@ export type ResearcherToolInvocation =
   | GenerateMusicToolInvocation
   | GenerateImageToolInvocation
   | GenerateThumbnailToolInvocation
+  | LearnFromVideoToolInvocation
 
 // Helper type to extract tool names
 export type ResearcherToolName = keyof ResearcherTools

@@ -12,6 +12,7 @@ import { createGenerateImageTool } from '@/lib/tools/video/generate-image'
 import { createGenerateMusicTool } from '@/lib/tools/video/generate-music'
 import { createGenerateThumbnailTool } from '@/lib/tools/video/generate-thumbnail'
 import { createGenerateVoiceoverTool } from '@/lib/tools/video/generate-voiceover'
+import { createLearnFromVideoTool } from '@/lib/tools/video/learn-from-video'
 import { createListVoicesTool } from '@/lib/tools/video/list-voices'
 import { createSourceFootageTool } from '@/lib/tools/video/source-footage'
 import { createWriteScriptTool } from '@/lib/tools/video/write-script'
@@ -56,6 +57,7 @@ const cloneVoiceTool = createCloneVoiceTool()
 const generateMusicTool = createGenerateMusicTool()
 const generateImageTool = createGenerateImageTool()
 const generateThumbnailTool = createGenerateThumbnailTool()
+const learnFromVideoTool = createLearnFromVideoTool()
 
 export type UITools = {
   search: InferUITool<typeof searchTool>
@@ -71,6 +73,7 @@ export type UITools = {
   generateMusic: InferUITool<typeof generateMusicTool>
   generateImage: InferUITool<typeof generateImageTool>
   generateThumbnail: InferUITool<typeof generateThumbnailTool>
+  learnFromVideo: InferUITool<typeof learnFromVideoTool>
   composeRender: InferUITool<typeof composeRenderTool>
   // Dynamic tools will be added at runtime
   [key: string]: any
