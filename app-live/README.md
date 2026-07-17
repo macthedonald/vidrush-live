@@ -1,6 +1,6 @@
 <div align="center">
 
-# Morphic
+# Kakkao
 
 An AI-powered search engine with a generative UI.
 
@@ -37,7 +37,7 @@ An AI-powered search engine with a generative UI.
 
 ### Docker (Recommended)
 
-The quickest way to run Morphic locally:
+The quickest way to run Kakkao locally:
 
 ```bash
 docker pull ghcr.io/miurla/morphic:latest
@@ -49,7 +49,7 @@ Then set up with Docker Compose:
 
 ```bash
 git clone https://github.com/miurla/morphic.git
-cd morphic
+cd kakkao
 cp .env.local.example .env.local
 ```
 
@@ -69,7 +69,7 @@ docker compose up -d
 
 4. Visit http://localhost:3000 and select your model from the model selector.
 
-Docker Compose starts PostgreSQL, Redis, SearXNG, and Morphic automatically. No additional search API key is needed — SearXNG is included.
+Docker Compose starts PostgreSQL, Redis, SearXNG, and Kakkao automatically. No additional search API key is needed — SearXNG is included.
 
 See the [Docker Guide](./docs/DOCKER.md) for more options including building from source and file upload configuration.
 
@@ -79,7 +79,7 @@ See the [Docker Guide](./docs/DOCKER.md) for more options including building fro
 
 ```bash
 git clone https://github.com/miurla/morphic.git
-cd morphic
+cd kakkao
 bun install
 ```
 

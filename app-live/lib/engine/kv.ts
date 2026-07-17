@@ -1,4 +1,4 @@
-// Tiny JSON KV over Upstash Redis (same creds morphic already uses for rate limiting),
+// Tiny JSON KV over Upstash Redis (same creds kakkao already uses for rate limiting),
 // with an in-memory fallback so dev / single-instance runs work without Redis. Used to
 // hand large payloads (e.g. voiceover word-timings) between tool calls by a short id,
 // instead of threading the whole array through the model's tool arguments.

@@ -45,11 +45,11 @@ docker compose up -d --build
 - **PostgreSQL 17** - Database with automatic migrations
 - **Redis** - SearXNG search caching
 - **SearXNG** - Self-hosted search engine (no external search API key needed)
-- **Morphic** - The application
+- **Kakkao** - The application
 
 ## Model Selection
 
-In Docker mode, Morphic dynamically detects available AI providers based on your API keys and displays a model selector in the UI. No configuration files to edit — just set your API key and pick your model.
+In Docker mode, Kakkao dynamically detects available AI providers based on your API keys and displays a model selector in the UI. No configuration files to edit — just set your API key and pick your model.
 
 ## Built-in Defaults
 
@@ -59,7 +59,7 @@ Docker Compose automatically sets these for you:
 - `SEARCH_API=searxng`
 - `SEARXNG_API_URL=http://searxng:8080`
 - `LOCAL_REDIS_URL=redis://redis:6379`
-- `MORPHIC_CLOUD_DEPLOYMENT=false`
+- `KAKKAO_CLOUD_DEPLOYMENT=false`
 
 Values in `docker-compose.yaml` take precedence over `.env.local`. To override a default:
 
@@ -84,9 +84,9 @@ If these are not set, upload is disabled.
 Customize database credentials in `.env.local`:
 
 ```bash
-POSTGRES_USER=morphic      # Default: morphic
-POSTGRES_PASSWORD=morphic  # Default: morphic
-POSTGRES_DB=morphic        # Default: morphic
+POSTGRES_USER=kakkao      # Default: kakkao
+POSTGRES_PASSWORD=kakkao  # Default: kakkao
+POSTGRES_DB=kakkao        # Default: kakkao
 POSTGRES_PORT=5432         # Default: 5432
 ```
 
@@ -133,8 +133,8 @@ docker compose down
 docker compose down -v
 
 # View logs
-docker compose logs -f morphic
+docker compose logs -f kakkao
 
 # Rebuild the image
-docker compose build morphic
+docker compose build kakkao
 ```

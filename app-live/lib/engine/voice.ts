@@ -1,4 +1,4 @@
-// VidRush engine — voiceover (TTS) via AI33 (https://api.ai33.pro), the same gateway the
+// Kakkao engine — voiceover (TTS) via AI33 (https://api.ai33.pro), the same gateway the
 // studio used. AI33 fronts ElevenLabs / MiniMax / Fish / cloned voices under one key.
 // It is task-based: POST /v3/text-to-speech (multipart) returns a task_id; poll
 // GET /v1/task/{id} until "done", then the audio lives at metadata.audio_url. With

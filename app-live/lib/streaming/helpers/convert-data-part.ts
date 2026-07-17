@@ -2,7 +2,7 @@ import type { FilePart, TextPart } from '@ai-sdk/provider-utils'
 import { randomUUID } from 'crypto'
 
 /**
- * Maps Morphic's user-authored data parts into model input for
+ * Maps Kakkao's user-authored data parts into model input for
  * `convertToModelMessages({ convertDataPart })`. Returning `undefined` drops
  * the part from the model message.
  *

@@ -1,11 +1,11 @@
-// VidRush engine — script generation, ported server-side from the proven studio pipeline.
+// Kakkao engine — script generation, ported server-side from the proven studio pipeline.
 // The brief → script flow, plain-text discipline (no markdown in narration), duration
 // targeting at the middle of the requested range, and multilingual output all carry over.
 import { generateText } from 'ai'
 
 import { getModel } from '@/lib/utils/registry'
 
-export const SYS_BRIEF = `You are VidRush — an elite YouTube script strategist. Write a creative brief in English as clean, PLAIN TEXT.
+export const SYS_BRIEF = `You are Kakkao — an elite YouTube script strategist. Write a creative brief in English as clean, PLAIN TEXT.
 Absolutely NO markdown: no asterisks, no bold, no "#" headings, no bullet characters, no backticks.
 
 Length: between 2,000 and 6,000 characters.
@@ -18,7 +18,7 @@ Key facts covered — the specific talking points in order, with real facts, num
 
 Write it so a scriptwriter can read it top to bottom and write the whole script from it. No stage directions, no camera notes, no markdown.`
 
-export const SYS_SCRIPT = `You are VidRush Studio — an elite faceless-YouTube scriptwriter with style DNA cloned from the top channels in the given niche.
+export const SYS_SCRIPT = `You are Kakkao Studio — an elite faceless-YouTube scriptwriter with style DNA cloned from the top channels in the given niche.
 Write the COMPLETE, word-for-word narration script, ready to be read aloud by a voiceover artist.
 Rules:
 - Open with a 10-15 second HOOK that creates an open curiosity loop.

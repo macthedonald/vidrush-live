@@ -1,6 +1,6 @@
 # Configuration Guide
 
-This guide covers the optional features and their configuration in Morphic.
+This guide covers the optional features and their configuration in Kakkao.
 
 ## Table of Contents
 
@@ -13,14 +13,14 @@ This guide covers the optional features and their configuration in Morphic.
 
 ## Database
 
-Morphic uses PostgreSQL for chat history storage. A database is **optional** for basic usage — without it, Morphic runs in a stateless mode where chat history is not persisted.
+Kakkao uses PostgreSQL for chat history storage. A database is **optional** for basic usage — without it, Kakkao runs in a stateless mode where chat history is not persisted.
 
 ### Setting Up PostgreSQL
 
 Set the connection string in `.env.local`:
 
 ```bash
-DATABASE_URL=postgresql://user:password@localhost:5432/morphic
+DATABASE_URL=postgresql://user:password@localhost:5432/kakkao
 ```
 
 Any PostgreSQL provider works: [Neon](https://neon.tech/), [Supabase](https://supabase.com/), or a local PostgreSQL instance.
@@ -41,11 +41,11 @@ This command applies all migrations from the `drizzle/` directory. Docker runs m
 
 ### Model Selection
 
-Morphic dynamically detects available AI providers based on your API keys and displays a model selector in the UI. Set at least one provider API key to get started.
+Kakkao dynamically detects available AI providers based on your API keys and displays a model selector in the UI. Set at least one provider API key to get started.
 
 In **Local/Docker** mode, the selected model is persisted in a cookie and used for all chat interactions including related question generation.
 
-In **Cloud** mode (`MORPHIC_CLOUD_DEPLOYMENT=true`), models are fixed by `config/models/cloud.json` and the model selector is not shown.
+In **Cloud** mode (`KAKKAO_CLOUD_DEPLOYMENT=true`), models are fixed by `config/models/cloud.json` and the model selector is not shown.
 
 ### Supported Providers
 
@@ -94,7 +94,7 @@ OPENAI_COMPATIBLE_API_KEY=[YOUR_API_KEY]
 OPENAI_COMPATIBLE_API_BASE_URL=https://api.deepseek.com
 ```
 
-Morphic sends chat requests to `/v1/chat/completions`. You can provide either a base URL with or without `/v1`; both of these resolve to the same endpoint:
+Kakkao sends chat requests to `/v1/chat/completions`. You can provide either a base URL with or without `/v1`; both of these resolve to the same endpoint:
 
 ```bash
 OPENAI_COMPATIBLE_API_BASE_URL=https://api.deepseek.com
@@ -117,18 +117,18 @@ This value is only a UI display name. The internal provider id remains `openai-c
 
 **Example: OrcaRouter**
 
-[OrcaRouter](https://www.orcarouter.ai) is an OpenAI-compatible endpoint that fronts 160+ models from OpenAI, Anthropic, Google, DeepSeek, xAI and others behind one API key. To use it with Morphic:
+[OrcaRouter](https://www.orcarouter.ai) is an OpenAI-compatible endpoint that fronts 160+ models from OpenAI, Anthropic, Google, DeepSeek, xAI and others behind one API key. To use it with Kakkao:
 
 ```bash
 OPENAI_COMPATIBLE_API_KEY=sk-orca-...
 OPENAI_COMPATIBLE_API_BASE_URL=https://api.orcarouter.ai/v1
 OPENAI_COMPATIBLE_PROVIDER_NAME=OrcaRouter
-# Pin a few tool-capable models so Morphic's research agents work out of the box.
+# Pin a few tool-capable models so Kakkao's research agents work out of the box.
 # Browse the full catalog at https://www.orcarouter.ai/models
 OPENAI_COMPATIBLE_MODELS=orcarouter/openai/gpt-5.5,orcarouter/anthropic/claude-opus-4.7,orcarouter/google/gemini-3-flash-preview
 ```
 
-Morphic's research agents rely on tool calling, so make sure any model you select supports it. Restricting `OPENAI_COMPATIBLE_MODELS` to known tool-capable models (as above) is the simplest way to keep the selector clean and avoid hitting non-tool-capable upstreams.
+Kakkao's research agents rely on tool calling, so make sure any model you select supports it. Restricting `OPENAI_COMPATIBLE_MODELS` to known tool-capable models (as above) is the simplest way to keep the selector clean and avoid hitting non-tool-capable upstreams.
 
 ## Search Providers
 
@@ -185,7 +185,7 @@ If not configured, `type="general"` searches fall back to your configured search
 
 ## Authentication
 
-By default, Morphic runs in **anonymous mode** (`ENABLE_AUTH=false`). This is ideal for personal, single-user environments.
+By default, Kakkao runs in **anonymous mode** (`ENABLE_AUTH=false`). This is ideal for personal, single-user environments.
 
 ### Anonymous Mode (Default)
 
@@ -219,7 +219,7 @@ SUPABASE_SECRET_KEY=[YOUR_SUPABASE_SECRET_KEY]
 
 ## Guest Mode
 
-Guest mode allows users to try Morphic without creating an account. Guest sessions are ephemeral — no chat history is stored.
+Guest mode allows users to try Kakkao without creating an account. Guest sessions are ephemeral — no chat history is stored.
 
 ### Enabling Guest Mode
 
@@ -244,7 +244,7 @@ UPSTASH_REDIS_REST_URL=[YOUR_UPSTASH_URL]
 UPSTASH_REDIS_REST_TOKEN=[YOUR_UPSTASH_TOKEN]
 ```
 
-Rate limiting only applies when `MORPHIC_CLOUD_DEPLOYMENT=true`.
+Rate limiting only applies when `KAKKAO_CLOUD_DEPLOYMENT=true`.
 
 ### Recommended Setup
 

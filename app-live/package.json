@@ -1,5 +1,5 @@
 {
-  "name": "morphic",
+  "name": "kakkao",
   "version": "1.5.0",
   "private": true,
   "license": "Apache-2.0",
@@ -15,7 +15,11 @@
     "backfill:file-keys": "bun run scripts/backfill-file-object-keys.ts",
     "test": "NODE_ENV=test vitest run",
     "test:watch": "vitest --watch",
-    "chat": "bun run scripts/chat-cli.ts"
+    "chat": "bun run scripts/chat-cli.ts",
+    "remotion:studio": "remotion studio",
+    "remotion:render": "remotion render Storyboard out/video.mp4",
+    "remotion:lambda:fn": "remotion lambda functions deploy",
+    "remotion:lambda:site": "remotion lambda sites create remotion/index.ts --site-name=kakkao"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.77",
@@ -78,6 +82,9 @@
     "postgres": "^3.4.5",
     "posthog-js": "^1.382.0",
     "posthog-node": "^5.36.4",
+    "remotion": "^4.0.0",
+    "@remotion/player": "^4.0.0",
+    "@remotion/lambda": "^4.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-textarea-autosize": "^8.5.3",
@@ -90,6 +97,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@remotion/cli": "^4.0.0",
     "@tailwindcss/postcss": "^4.1.11",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.6.3",

@@ -83,7 +83,7 @@ function AssetCard({
 }
 
 // Renders the sourceFootage tool: a collapsible card showing the vision-verified pick
-// plus the ranked candidate grid pooled from open archives and morphic's web search.
+// plus the ranked candidate grid pooled from open archives and kakkao's web search.
 export function FootageSection({
   tool,
   isOpen,

@@ -25,13 +25,13 @@ const sourceFootageSchema = z.object({
 })
 
 // Scout real footage/imagery for a scene. Pools open archives (Wikimedia, Internet
-// Archive, National Archives) AND morphic's configured web search provider, ranks by
+// Archive, National Archives) AND kakkao's configured web search provider, ranks by
 // relevance, and — when a Gemini key is present — vision-verifies that the top pick
 // actually depicts the subject and is free of burned-in text/watermarks.
 export function createSourceFootageTool() {
   return tool({
     description:
-      'Find real b-roll footage and photos for a video scene. Pools open archives (Wikimedia Commons, Internet Archive, U.S. National Archives) together with the general web via morphic\'s search provider, ranks candidates by relevance, and vision-verifies the best pick when possible. Use after scripting/beats when you need concrete visuals for a shot.',
+      'Find real b-roll footage and photos for a video scene. Pools open archives (Wikimedia Commons, Internet Archive, U.S. National Archives) together with the general web via kakkao\'s search provider, ranks candidates by relevance, and vision-verifies the best pick when possible. Use after scripting/beats when you need concrete visuals for a shot.',
     inputSchema: sourceFootageSchema,
     execute: async ({ queries, intent, limit }) => {
       const result = await sourceFootage(queries, intent || queries.join('; '), {

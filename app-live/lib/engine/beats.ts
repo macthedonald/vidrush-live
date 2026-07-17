@@ -1,4 +1,4 @@
-// VidRush engine — beat segmentation, ported server-side from the studio pipeline.
+// Kakkao engine — beat segmentation, ported server-side from the studio pipeline.
 // Turns a clean narration script into a storyboard skeleton: an ordered list of shots,
 // each with its narration, a concrete footage search query + intent, a still/clip hint,
 // and estimated word-level timings so the karaoke captions and the FFmpeg xfade chain
@@ -195,7 +195,7 @@ export async function cutScriptIntoBeats(
     height,
     fps,
     brand: {
-      channel: input.channel || 'VidRush',
+      channel: input.channel || 'Kakkao',
       accent: input.accent || '#ff2d55'
     },
     shots,

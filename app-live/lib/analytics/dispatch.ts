@@ -6,7 +6,7 @@ import {
 } from './providers/posthog-server'
 
 export function isAnalyticsEnabled(): boolean {
-  return process.env.MORPHIC_CLOUD_DEPLOYMENT === 'true'
+  return process.env.KAKKAO_CLOUD_DEPLOYMENT === 'true'
 }
 
 /**

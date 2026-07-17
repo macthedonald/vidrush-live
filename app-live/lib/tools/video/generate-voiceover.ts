@@ -28,54 +28,25 @@ export interface VoiceoverHandle {
   voiceId: string
 }
 
-// Generate a voiceover for the script and return a small handle. The audio + word
-// timings are produced by AI33 (ElevenLabs/MiniMax/Fish/cloned voices) — via the render
-// worker when configured, so the mp3 is mirrored to durable storage; the bulky
-// word-timings array is stored in KV under voiceoverId so cutBeats can lock the
-// storyboard to real speech and composeRender can pull the audio URL — without the
-// model ever having to carry that data.
+// Generate a voiceover for the script and return a small handle. The audio + word timings
+// are produced by AI33 (ElevenLabs/MiniMax/Fish/cloned voices), which hosts the mp3 so its
+// URL is playable directly (Remotion streams it in at render time). The bulky word-timings
+// array is stored in KV under voiceoverId so cutBeats can lock the storyboard to real
+// speech and composeRender can pull the audio URL — without the model ever carrying it.
 export function createGenerateVoiceoverTool() {
   return tool({
     description:
       'Generate a spoken voiceover (TTS) for a narration script, with real word-level timings. Returns a voiceoverId plus the audio URL and duration. Pass the voiceoverId to cutBeats (so shots lock to actual speech) and to composeRender (so it mixes in the narration). Run after writeScript.',
     inputSchema: voiceoverSchema,
     execute: async ({ script, voiceId, voiceName }, { abortSignal }) => {
-      const workerUrl = process.env.RENDER_WORKER_URL
-      let handle: VoiceoverHandle
-
-      if (workerUrl) {
-        const res = await fetch(`${workerUrl.replace(/\/$/, '')}/voiceover`, {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            ...(process.env.RENDER_WORKER_TOKEN
-              ? { authorization: `Bearer ${process.env.RENDER_WORKER_TOKEN}` }
-              : {})
-          },
-          body: JSON.stringify({ text: script, voiceId }),
-          signal: abortSignal
-        })
-        if (!res.ok) {
-          const msg = await res.text().catch(() => '')
-          throw new Error(`voiceover worker ${res.status}: ${msg.slice(0, 300)}`)
-        }
-        const out = await res.json()
-        handle = {
-          audioUrl: out.audioUrl,
-          words: out.words || [],
-          durationSec: out.durationSec || 0,
-          voiceId: out.voiceId || voiceId || ''
-        }
-      } else {
-        // No worker configured: call AI33 directly. AI33 hosts the audio, so we still get
-        // a playable URL (the render worker downloads it at compose time).
-        const vo = await generateVoiceover(script, { voiceId, abortSignal })
-        handle = {
-          audioUrl: vo.audioUrl,
-          words: vo.words,
-          durationSec: vo.durationSec,
-          voiceId: vo.voiceId
-        }
+      // AI33 hosts the audio, so we get a playable URL that Remotion streams in at render
+      // time (compose) and the Player preview plays directly.
+      const vo = await generateVoiceover(script, { voiceId, abortSignal })
+      const handle: VoiceoverHandle = {
+        audioUrl: vo.audioUrl,
+        words: vo.words,
+        durationSec: vo.durationSec,
+        voiceId: vo.voiceId
       }
 
       const voiceoverId = `vo_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`

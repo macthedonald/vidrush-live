@@ -1,8 +1,8 @@
-// VidRush engine — real-footage sourcing, ported server-side from the proven studio pipeline.
+// Kakkao engine — real-footage sourcing, ported server-side from the proven studio pipeline.
 // Pools candidates from Wikimedia Commons + Internet Archive (+ NARA with a key), ranks by
 // term relevance, and optionally vision-verifies with Gemini so the pick actually depicts
 // the subject. Server-side fetch: no CORS, and we can send a proper User-Agent.
-const UA = { 'User-Agent': 'VidRushLive/1.0 (+https://github.com/macthedonald/vidrush-live)' }
+const UA = { 'User-Agent': 'KakkaoLive/1.0 (+https://github.com/macthedonald/kakkao-live)' }
 
 export interface FootageAsset {
   kind: 'video' | 'photo'
@@ -146,12 +146,12 @@ export async function naraMedia(query: string, key: string, limit = 8): Promise<
   return out
 }
 
-// Pool the media that morphic's own search stack can already see. This is the hybrid
+// Pool the media that kakkao's own search stack can already see. This is the hybrid
 // bridge the user asked for: footage sourcing is NOT limited to Wikimedia/Archive/NARA —
-// it also draws on whatever provider morphic is configured with (Tavily/Exa/Brave/
+// it also draws on whatever provider kakkao is configured with (Tavily/Exa/Brave/
 // Firecrawl/SearXNG), reusing their image + video results as extra candidates. We import
 // the provider factory lazily so this engine module stays usable outside the Next runtime.
-export async function morphicMedia(query: string, limit = 8): Promise<FootageAsset[]> {
+export async function kakkaoMedia(query: string, limit = 8): Promise<FootageAsset[]> {
   const q = String(query || '').trim()
   if (!q) return []
   let createSearchProvider: (typeof import('@/lib/tools/search/providers'))['createSearchProvider']
@@ -226,11 +226,11 @@ export async function sourceCandidates(
   const jobs: Promise<FootageAsset[]>[] = [wikimediaMedia(q0, 8), archiveVideos(q0, 6)]
   if (q1 !== q0) jobs.push(wikimediaMedia(q1, 6))
   if (naraKey) jobs.push(naraMedia(q0, naraKey, 8))
-  // Hybrid: fold in morphic's configured web search provider (image + video) so the
-  // footage pool spans open archives AND the general web that morphic already indexes.
+  // Hybrid: fold in kakkao's configured web search provider (image + video) so the
+  // footage pool spans open archives AND the general web that kakkao already indexes.
   if (includeWeb) {
-    jobs.push(morphicMedia(q0, 8))
-    if (q1 !== q0) jobs.push(morphicMedia(q1, 6))
+    jobs.push(kakkaoMedia(q0, 8))
+    if (q1 !== q0) jobs.push(kakkaoMedia(q1, 6))
   }
   const settled = await Promise.allSettled(jobs)
   const pool: FootageAsset[] = []

@@ -8,12 +8,19 @@ import {
   IconMusic as Music,
   IconMicrophone as Mic
 } from '@tabler/icons-react'
+import dynamic from 'next/dynamic'
 
 import { toPublicErrorPayload } from '@/lib/errors/public-error'
 import type { ToolPart } from '@/lib/types/ai'
 import { cn } from '@/lib/utils'
 
 import ProcessHeader from './process-header'
+
+// The Remotion Player is heavy and browser-only — load it lazily, client-side.
+const RemotionPreview = dynamic(
+  () => import('./remotion-preview').then(m => m.RemotionPreview),
+  { ssr: false }
+)
 
 interface RenderSectionProps {
   tool: ToolPart<'composeRender'>
@@ -30,9 +37,9 @@ const fmt = (s: number) => {
   return m ? `${m}m ${sec}s` : `${sec}s`
 }
 
-// Renders the composeRender tool: a summary of the finished MP4 (duration, shot count,
-// audio tracks, fallback cards). The output path is server-side; the player is bound
-// once the render is uploaded to storage and given a URL.
+// Renders the composeRender tool: an interactive Remotion preview of the storyboard (the
+// same composition Lambda renders), plus the finished MP4 once Lambda returns its URL, and
+// a summary (duration, shot count, audio tracks, fallback cards).
 export function RenderSection({
   tool,
   isOpen,
@@ -51,6 +58,7 @@ export function RenderSection({
       }).error
     : undefined
 
+  const hasVideo = !!output?.videoUrl
   const header = (
     <ProcessHeader
       onInspect={() => onOpenChange(!isOpen)}
@@ -59,7 +67,11 @@ export function RenderSection({
         <div className="flex min-w-0 items-center gap-2 overflow-hidden">
           <Movie className="h-4 w-4 shrink-0 text-muted-foreground" />
           <span className="block min-w-0 max-w-full truncate">
-            {output ? 'Rendered video' : 'Rendering video'}
+            {hasVideo
+              ? 'Rendered video'
+              : output
+                ? 'Storyboard preview'
+                : 'Composing storyboard'}
           </span>
         </div>
       }
@@ -77,7 +89,7 @@ export function RenderSection({
             <span>{error}</span>
           </>
         ) : (
-          <span className="animate-pulse">Encoding MP4…</span>
+          <span className="animate-pulse">Assembling…</span>
         )
       }
     />
@@ -114,6 +126,10 @@ export function RenderSection({
         </div>
         {output && isOpen && (
           <div className="space-y-2 px-4 pb-4 text-sm">
+            {/* Interactive Remotion preview — identical to the Lambda render. */}
+            {output.inputProps && <RemotionPreview input={output.inputProps} />}
+
+            {/* Finished MP4 from Lambda, when available. */}
             {output.videoUrl && (
               <video
                 controls
@@ -122,6 +138,7 @@ export function RenderSection({
                 className="w-full rounded-md bg-black"
               />
             )}
+
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Mic className="h-3.5 w-3.5" />
@@ -138,6 +155,7 @@ export function RenderSection({
                 </span>
               )}
             </div>
+
             {output.videoUrl ? (
               <a
                 href={output.videoUrl}
@@ -147,9 +165,11 @@ export function RenderSection({
               >
                 {output.videoUrl}
               </a>
-            ) : output.outPath ? (
+            ) : 'needsLambda' in output && output.needsLambda ? (
               <p className="break-all rounded-md bg-muted/40 p-2 text-xs text-muted-foreground">
-                {output.outPath}
+                Preview only — configure Remotion Lambda (REMOTION_SERVE_URL +
+                AWS credentials) to render the final MP4. See
+                docs/REMOTION_LAMBDA.md.
               </p>
             ) : null}
           </div>

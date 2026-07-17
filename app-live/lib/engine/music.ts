@@ -1,4 +1,4 @@
-// VidRush engine — background music via AI33's Suno endpoint (same gateway as voiceover).
+// Kakkao engine — background music via AI33's Suno endpoint (same gateway as voiceover).
 // Task-based like TTS: POST /v1s/task/music-generation (simple mode) → poll /v1/task/{id}
 // until done → metadata.audio_url. The resulting track plugs straight into composeRender's
 // `music` input as a ducked bed under the narration. Shared with the render worker.

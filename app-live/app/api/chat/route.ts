@@ -117,7 +117,7 @@ export async function POST(req: Request) {
       isAdaptiveModeAuthBlocked({
         mode: searchMode,
         isGuest,
-        isCloudDeployment: process.env.MORPHIC_CLOUD_DEPLOYMENT === 'true'
+        isCloudDeployment: process.env.KAKKAO_CLOUD_DEPLOYMENT === 'true'
       })
     ) {
       return new Response(
