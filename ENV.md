@@ -16,10 +16,9 @@ Legend: **[req]** required for that feature to work · **[opt]** optional / tuni
 
 ```bash
 DATABASE_URL=postgresql://user:pass@host:5432/kakkao   # [req] Postgres (chat history, feedback)
-ANTHROPIC_API_KEY=sk-ant-…        # [req] scripts, beats, niche AI, learn-from-video (Claude)
+ANTHROPIC_API_KEY=sk-ant-…        # [req] DEFAULT chat model (Claude Sonnet 5) + scripts, beats, niche AI, learn-from-video
 TAVILY_API_KEY=tvly-…             # [req] research + footage discovery (default search provider)
-# At least one more general AI provider is used as the chat default:
-OPENAI_API_KEY=sk-…               # [req] unless you set another default provider below
+# OPENAI_API_KEY=sk-…             # [opt] only if you switch the chat model to an OpenAI one
 ```
 
 > **Redis is effectively required for the Studio flow.** `composeRender` stores the
@@ -161,5 +160,5 @@ The Action prints the `REMOTION_SERVE_URL` to paste into the Vercel env above.
 
 `DATABASE_URL` · `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` · `ANTHROPIC_API_KEY` ·
 `TAVILY_API_KEY` · `AI33_API_KEY` · `YOUTUBE_API_KEY` · `GEMINI_API_KEY` ·
-`REMOTION_SERVE_URL` + `REMOTION_AWS_ACCESS_KEY_ID` + `REMOTION_AWS_SECRET_ACCESS_KEY`
-(+ one general provider like `OPENAI_API_KEY` for the chat default).
+`REMOTION_SERVE_URL` + `REMOTION_AWS_ACCESS_KEY_ID` + `REMOTION_AWS_SECRET_ACCESS_KEY`.
+(`ANTHROPIC_API_KEY` is the default chat model — Claude Sonnet 5 — so no OpenAI key is needed.)
