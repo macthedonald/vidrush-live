@@ -24,6 +24,19 @@ export interface LambdaRenderResult {
   bucketName: string
 }
 
+export interface LambdaRenderHandle {
+  renderId: string
+  bucketName: string
+}
+
+export interface LambdaProgress {
+  done: boolean
+  progress: number // 0..100
+  url?: string
+  sizeInBytes?: number
+  error?: string
+}
+
 export function isLambdaConfigured(): boolean {
   return Boolean(
     process.env.REMOTION_SERVE_URL &&
@@ -50,25 +63,22 @@ function functionName(): string {
 }
 
 /**
- * Render a storyboard to MP4 on Remotion Lambda and wait for the result.
- * Throws if Lambda isn't configured or the render fails.
+ * Kick off a Lambda render of the storyboard and return immediately with a handle the
+ * caller polls with getLambdaProgress. Used by the /studio Render button so the UI stays
+ * responsive while frames fan out across invocations. Throws if Lambda isn't configured.
  */
-export async function renderStoryboardOnLambda(
-  inputProps: StoryboardInput,
-  opts: { onProgress?: (pct: number) => void; signal?: AbortSignal } = {}
-): Promise<LambdaRenderResult> {
+export async function startLambdaRender(
+  inputProps: StoryboardInput
+): Promise<LambdaRenderHandle> {
   const serveUrl = process.env.REMOTION_SERVE_URL
   if (!serveUrl) {
     throw new Error(
       'REMOTION_SERVE_URL is not set — deploy the Remotion site/function first (see docs/REMOTION_LAMBDA.md).'
     )
   }
-  const reg = region()
-  const fn = functionName()
-
   const { renderId, bucketName } = await renderMediaOnLambda({
-    region: reg,
-    functionName: fn,
+    region: region(),
+    functionName: functionName(),
     serveUrl,
     composition: COMPOSITION_ID,
     inputProps,
@@ -86,33 +96,58 @@ export async function renderStoryboardOnLambda(
         }
       : {})
   })
+  return { renderId, bucketName }
+}
 
-  // Poll to completion. Lambda renders are fast (frames fan out across invocations), but
-  // long enough that we surface progress to the UI via the callback.
+/** Poll a running Lambda render. Never throws for an in-progress render. */
+export async function getLambdaProgress(
+  handle: LambdaRenderHandle
+): Promise<LambdaProgress> {
+  const progress = await getRenderProgress({
+    renderId: handle.renderId,
+    bucketName: handle.bucketName,
+    functionName: functionName(),
+    region: region()
+  })
+  if (progress.fatalErrorEncountered) {
+    return {
+      done: true,
+      progress: Math.round((progress.overallProgress || 0) * 100),
+      error: progress.errors?.[0]?.message || 'unknown Lambda render error'
+    }
+  }
+  return {
+    done: progress.done,
+    progress: Math.round((progress.overallProgress || 0) * 100),
+    url: progress.outputFile ?? undefined,
+    sizeInBytes: progress.outputSizeInBytes ?? undefined
+  }
+}
+
+/**
+ * Render a storyboard to MP4 on Remotion Lambda and wait for the result.
+ * Convenience wrapper over startLambdaRender + getLambdaProgress.
+ */
+export async function renderStoryboardOnLambda(
+  inputProps: StoryboardInput,
+  opts: { onProgress?: (pct: number) => void; signal?: AbortSignal } = {}
+): Promise<LambdaRenderResult> {
+  const handle = await startLambdaRender(inputProps)
   while (true) {
     if (opts.signal?.aborted) throw new Error('render aborted')
-    const progress = await getRenderProgress({
-      renderId,
-      bucketName,
-      functionName: fn,
-      region: reg
-    })
-    if (progress.fatalErrorEncountered) {
-      const err = progress.errors?.[0]?.message || 'unknown Lambda render error'
-      throw new Error(`Remotion Lambda render failed: ${err}`)
-    }
-    if (progress.done) {
-      const url = progress.outputFile
-      if (!url)
+    const p = await getLambdaProgress(handle)
+    if (p.error) throw new Error(`Remotion Lambda render failed: ${p.error}`)
+    if (p.done) {
+      if (!p.url)
         throw new Error('Remotion Lambda finished without an output URL')
       return {
-        url,
-        sizeInBytes: progress.outputSizeInBytes ?? undefined,
-        renderId,
-        bucketName
+        url: p.url,
+        sizeInBytes: p.sizeInBytes,
+        renderId: handle.renderId,
+        bucketName: handle.bucketName
       }
     }
-    opts.onProgress?.(Math.round((progress.overallProgress || 0) * 100))
+    opts.onProgress?.(p.progress)
     await sleep(2000)
   }
 }

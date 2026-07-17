@@ -1,6 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
 
 import {
   IconAlertCircle as AlertCircle,
@@ -38,9 +39,8 @@ const fmt = (s: number) => {
   return m ? `${m}m ${sec}s` : `${sec}s`
 }
 
-// Renders the composeRender tool: an interactive Remotion preview of the storyboard (the
-// same composition Lambda renders), plus the finished MP4 once Lambda returns its URL, and
-// a summary (duration, shot count, audio tracks, fallback cards).
+// Renders the composeRender tool: an inline Remotion preview of the storyboard plus a link
+// to open the full Studio canvas (/studio/[id]), where the user renders on Remotion Lambda.
 export function RenderSection({
   tool,
   isOpen,
@@ -55,11 +55,10 @@ export function RenderSection({
   const failed = tool.state === 'output-error'
   const error = failed
     ? toPublicErrorPayload(tool.errorText, {
-        fallbackMessage: 'Render failed'
+        fallbackMessage: 'Compose failed'
       }).error
     : undefined
 
-  const hasVideo = !!output?.videoUrl
   const header = (
     <ProcessHeader
       onInspect={() => onOpenChange(!isOpen)}
@@ -68,11 +67,7 @@ export function RenderSection({
         <div className="flex min-w-0 items-center gap-2 overflow-hidden">
           <Movie className="h-4 w-4 shrink-0 text-muted-foreground" />
           <span className="block min-w-0 max-w-full truncate">
-            {hasVideo
-              ? 'Rendered video'
-              : output
-                ? 'Storyboard preview'
-                : 'Composing storyboard'}
+            {output ? 'Storyboard ready' : 'Composing storyboard'}
           </span>
         </div>
       }
@@ -129,21 +124,11 @@ export function RenderSection({
           )}
         </div>
         {output && isOpen && (
-          <div className="space-y-2 px-4 pb-4 text-sm">
-            {/* Interactive Remotion preview — identical to the Lambda render. */}
+          <div className="space-y-3 px-4 pb-4 text-sm">
+            {/* Inline Remotion preview — identical to the Studio canvas + Lambda render. */}
             {output.inputProps && <RemotionPreview input={output.inputProps} />}
 
-            {/* Finished MP4 from Lambda, when available. */}
-            {output.videoUrl && (
-              <video
-                controls
-                preload="metadata"
-                src={output.videoUrl}
-                className="w-full rounded-md bg-black"
-              />
-            )}
-
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Mic className="h-3.5 w-3.5" />
                 {output.hadVoice ? 'Voiceover' : 'No voiceover'}
@@ -160,22 +145,20 @@ export function RenderSection({
               )}
             </div>
 
-            {output.videoUrl ? (
-              <a
-                href={output.videoUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-block break-all text-xs text-primary underline"
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                href={output.studioPath}
+                className="inline-flex items-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
               >
-                {output.videoUrl}
-              </a>
-            ) : 'needsLambda' in output && output.needsLambda ? (
-              <p className="break-all rounded-md bg-muted/40 p-2 text-xs text-muted-foreground">
-                Preview only — configure Remotion Lambda (REMOTION_SERVE_URL +
-                AWS credentials) to render the final MP4. See
-                docs/REMOTION_LAMBDA.md.
-              </p>
-            ) : null}
+                Open in Studio →
+              </Link>
+              {!output.lambdaReady && (
+                <span className="text-xs text-muted-foreground">
+                  Set REMOTION_SERVE_URL + AWS creds to enable Lambda rendering
+                  (see docs/REMOTION_LAMBDA.md).
+                </span>
+              )}
+            </div>
           </div>
         )}
       </div>

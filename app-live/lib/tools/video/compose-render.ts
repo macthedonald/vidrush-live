@@ -1,11 +1,8 @@
 import { tool } from 'ai'
 import { z } from 'zod'
 
-import { kvGetJSON } from '@/lib/engine/kv'
-import {
-  isLambdaConfigured,
-  renderStoryboardOnLambda
-} from '@/lib/remotion/lambda'
+import { kvGetJSON, kvSetJSON } from '@/lib/engine/kv'
+import { isLambdaConfigured } from '@/lib/remotion/lambda'
 
 import type { VoiceoverHandle } from './generate-voiceover'
 
@@ -60,14 +57,14 @@ const composeRenderSchema = z.object({
   music: z.string().optional().describe('Public URL of a background music bed')
 })
 
-// Render a storyboard (shots + assets + optional voiceover/music) into a finished MP4 with
-// Remotion. The SAME storyboard input drives the in-chat Remotion Player preview, so what
-// the user previews is exactly what Lambda renders. Run after cutBeats + sourceFootage
-// have populated the shots.
+// Assemble a storyboard (shots + assets + optional voiceover/music) into a Remotion
+// composition and PUBLISH it to the Studio. The SAME storyboard drives the in-chat preview
+// and the /studio/[id] canvas; the user opens the Studio, sees the full Remotion canvas, and
+// clicks Render to run Remotion Lambda. Run after cutBeats + sourceFootage populate the shots.
 export function createComposeRenderTool() {
   return tool({
     description:
-      'Assemble the storyboard into a Remotion composition and render it to a finished MP4 on Remotion Lambda. Takes the shots (with resolved footage assets and word-timed captions from cutBeats/sourceFootage) plus an optional voiceover and music bed. The returned storyboard also powers an interactive, scrubbable preview in the chat — the same composition that Lambda renders — so preview and final video match exactly. Shots without an asset render as clean brand cards.',
+      'Assemble the storyboard into a Remotion composition and open it in the Kakkao Studio. Takes the shots (with resolved footage assets and word-timed captions from cutBeats/sourceFootage) plus an optional voiceover and music bed. Returns a Studio link (/studio/[id]) where the user sees the full Remotion canvas and clicks Render to produce the MP4 on Remotion Lambda; the same storyboard also powers an interactive preview inline in the chat. Shots without an asset render as clean brand cards.',
     inputSchema: composeRenderSchema,
     execute: async input => {
       // Resolve the voiceover: an explicit `voice` URL wins; otherwise pull the audio URL
@@ -102,29 +99,23 @@ export function createComposeRenderTool() {
       const last = inputProps.shots[inputProps.shots.length - 1]
       const totalSeconds = +(last.start + last.duration).toFixed(2)
       const fallbacks = inputProps.shots.filter(s => !s.src).length
-      const base = {
+
+      // Publish the storyboard to KV so the Studio page (/studio/[id]) can load it and the
+      // user can render it on Lambda from there.
+      const studioId = `sb_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
+      await kvSetJSON(`storyboard:${studioId}`, inputProps)
+
+      return {
         state: 'complete' as const,
+        studioId,
+        studioPath: `/studio/${studioId}`,
         inputProps,
         totalSeconds,
         shots: inputProps.shots.length,
         hadVoice: !!inputProps.voice,
         hadMusic: !!inputProps.music,
-        fallbacks
-      }
-
-      // Production path: render on Remotion Lambda and return the MP4 URL.
-      if (isLambdaConfigured()) {
-        const out = await renderStoryboardOnLambda(inputProps)
-        return { ...base, videoUrl: out.url as string | undefined }
-      }
-
-      // Lambda not configured: still return the storyboard so the chat can render the
-      // interactive Remotion preview. The final MP4 URL is produced once Lambda is set up
-      // (see docs/REMOTION_LAMBDA.md).
-      return {
-        ...base,
-        videoUrl: undefined as string | undefined,
-        needsLambda: true as const
+        fallbacks,
+        lambdaReady: isLambdaConfigured()
       }
     }
   })
