@@ -8,6 +8,7 @@ import BeatsSection from './beats-section'
 import CloneSection from './clone-section'
 import FetchSection from './fetch-section'
 import FootageSection from './footage-section'
+import ImageSection from './image-section'
 import MusicSection from './music-section'
 import { QuestionConfirmation } from './question-confirmation'
 import RenderSection from './render-section'
@@ -171,6 +172,30 @@ export function ToolSection({
       return (
         <MusicSection
           tool={tool as ToolPart<'generateMusic'>}
+          isOpen={isOpen}
+          onOpenChange={onOpenChange}
+          borderless={borderless}
+          isFirst={isFirst}
+          isLast={isLast}
+        />
+      )
+    case 'tool-generateImage':
+      return (
+        <ImageSection
+          tool={tool as ToolPart<'generateImage'>}
+          variant="image"
+          isOpen={isOpen}
+          onOpenChange={onOpenChange}
+          borderless={borderless}
+          isFirst={isFirst}
+          isLast={isLast}
+        />
+      )
+    case 'tool-generateThumbnail':
+      return (
+        <ImageSection
+          tool={tool as ToolPart<'generateThumbnail'>}
+          variant="thumbnail"
           isOpen={isOpen}
           onOpenChange={onOpenChange}
           borderless={borderless}

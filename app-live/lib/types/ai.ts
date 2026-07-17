@@ -8,7 +8,9 @@ import { createTodoTools, type TodoItem } from '@/lib/tools/todo'
 import { createCloneVoiceTool } from '@/lib/tools/video/clone-voice'
 import { createComposeRenderTool } from '@/lib/tools/video/compose-render'
 import { createCutBeatsTool } from '@/lib/tools/video/cut-beats'
+import { createGenerateImageTool } from '@/lib/tools/video/generate-image'
 import { createGenerateMusicTool } from '@/lib/tools/video/generate-music'
+import { createGenerateThumbnailTool } from '@/lib/tools/video/generate-thumbnail'
 import { createGenerateVoiceoverTool } from '@/lib/tools/video/generate-voiceover'
 import { createListVoicesTool } from '@/lib/tools/video/list-voices'
 import { createSourceFootageTool } from '@/lib/tools/video/source-footage'
@@ -52,6 +54,8 @@ const generateVoiceoverTool = createGenerateVoiceoverTool()
 const listVoicesTool = createListVoicesTool()
 const cloneVoiceTool = createCloneVoiceTool()
 const generateMusicTool = createGenerateMusicTool()
+const generateImageTool = createGenerateImageTool()
+const generateThumbnailTool = createGenerateThumbnailTool()
 
 export type UITools = {
   search: InferUITool<typeof searchTool>
@@ -65,6 +69,8 @@ export type UITools = {
   listVoices: InferUITool<typeof listVoicesTool>
   cloneVoice: InferUITool<typeof cloneVoiceTool>
   generateMusic: InferUITool<typeof generateMusicTool>
+  generateImage: InferUITool<typeof generateImageTool>
+  generateThumbnail: InferUITool<typeof generateThumbnailTool>
   composeRender: InferUITool<typeof composeRenderTool>
   // Dynamic tools will be added at runtime
   [key: string]: any

@@ -1,6 +1,7 @@
 // Generate synthetic test assets for the render spike — text-free frames, one motion clip,
 // a "voiceover" sweep and a quiet music bed. In production these come from the real pipeline
-// (Gathos frames, sourced clips, TTS PCM); this only exercises the render mechanics.
+// (sourced footage, AI33-generated images via gpt-image-2, AI33 TTS); this only exercises
+// the render mechanics.
 import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
