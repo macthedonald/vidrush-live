@@ -19,7 +19,8 @@
     "remotion:studio": "remotion studio",
     "remotion:render": "remotion render Storyboard out/video.mp4",
     "remotion:lambda:fn": "remotion lambda functions deploy",
-    "remotion:lambda:site": "remotion lambda sites create remotion/index.ts --site-name=kakkao"
+    "remotion:lambda:site": "remotion lambda sites create remotion/index.ts --site-name=kakkao",
+    "remotion:lambda:deploy": "remotion lambda functions deploy && remotion lambda sites create remotion/index.ts --site-name=kakkao"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.77",

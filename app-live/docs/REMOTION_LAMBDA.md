@@ -31,10 +31,18 @@ renderStoryboardOnLambda ──► Remotion Lambda ──► MP4 URL (S3)
 - Lambda wrapper: `lib/remotion/lambda.ts` (`renderStoryboardOnLambda`, progress polling).
 - Tool: `lib/tools/video/compose-render.ts`.
 
+## Fastest path — one click
+
+Add repo secrets `REMOTION_AWS_ACCESS_KEY_ID` + `REMOTION_AWS_SECRET_ACCESS_KEY`, then run the
+**Deploy Remotion Lambda** GitHub Action (`.github/workflows/deploy-remotion-lambda.yml`). It
+deploys the function + site and prints the `REMOTION_SERVE_URL` to paste into Vercel. The
+manual steps below are the same thing by hand.
+
 ## One-time deploy
 
 Prerequisites: an AWS account and the AWS credentials below. All `@remotion/*` packages must
-be the **same version** (they are, via `package.json`).
+be the **same version** (they are, via `package.json`). Locally, `bun run remotion:lambda:deploy`
+runs the function + site deploy together.
 
 1. **Create an IAM user + role for Remotion** following the official policy generator:
    https://www.remotion.dev/docs/lambda/setup — it produces a user policy and a role policy.

@@ -1,0 +1,65 @@
+# One-click Remotion Lambda go-live. Runs the function + site deploy from app-live/ and
+# prints the Serve URL + function name to set as Vercel env (REMOTION_SERVE_URL /
+# REMOTION_FUNCTION_NAME). Trigger from the Actions tab (workflow_dispatch).
+#
+# Required repo secrets: REMOTION_AWS_ACCESS_KEY_ID, REMOTION_AWS_SECRET_ACCESS_KEY.
+# Optional: REMOTION_LAMBDA_REGION (default us-east-1).
+name: Deploy Remotion Lambda
+
+on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: AWS region
+        required: false
+        default: us-east-1
+
+concurrency:
+  group: remotion-lambda
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app-live
+    env:
+      REMOTION_AWS_ACCESS_KEY_ID: ${{ secrets.REMOTION_AWS_ACCESS_KEY_ID }}
+      REMOTION_AWS_SECRET_ACCESS_KEY: ${{ secrets.REMOTION_AWS_SECRET_ACCESS_KEY }}
+      REMOTION_LAMBDA_REGION: ${{ github.event.inputs.region }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install deps
+        run: bun install
+
+      - name: Deploy Lambda function
+        run: bunx remotion lambda functions deploy --region "$REMOTION_LAMBDA_REGION"
+
+      - name: Deploy site bundle
+        id: site
+        run: |
+          bunx remotion lambda sites create remotion/index.ts --site-name=kakkao \
+            --region "$REMOTION_LAMBDA_REGION" | tee /tmp/site.log
+          SERVE_URL=$(grep -oE 'https://[^ ]+/sites/kakkao/index.html' /tmp/site.log | head -1)
+          echo "serve_url=$SERVE_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Summary
+        run: |
+          {
+            echo "## Remotion Lambda deployed ✅"
+            echo ""
+            echo "Set these in the Vercel (app-live) project env, then redeploy:"
+            echo ""
+            echo '```'
+            echo "REMOTION_SERVE_URL=${{ steps.site.outputs.serve_url }}"
+            echo "REMOTION_LAMBDA_REGION=$REMOTION_LAMBDA_REGION"
+            echo "REMOTION_AWS_ACCESS_KEY_ID=<same as the secret>"
+            echo "REMOTION_AWS_SECRET_ACCESS_KEY=<same as the secret>"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
