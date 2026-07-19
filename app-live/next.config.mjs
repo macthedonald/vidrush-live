@@ -1,17 +1,14 @@
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-
 // This app lives in the app-live/ subdirectory of a multi-package repo (worker/, spike/,
-// hook/ are siblings). Pin the workspace root here so the build never infers the repo
-// root — which has only spike tooling and a second lockfile — as the base directory.
-const appDir = path.dirname(fileURLToPath(import.meta.url))
+// hook/ are siblings). On Vercel the project's Root Directory is app-live, so the build
+// already runs here; letting Vercel's @vercel/next builder infer the tracing root itself
+// (rather than pinning outputFileTracingRoot/turbopack.root) keeps the build and the
+// post-build packaging step in agreement — pinning them made @vercel/next look for
+// .next/package.json at the wrong base and fail with ENOENT.
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Reverse proxy for PostHog to reduce tracking-blocker interception.
   skipTrailingSlashRedirect: true,
-  turbopack: { root: appDir },
-  outputFileTracingRoot: appDir,
   async rewrites() {
     return [
       {
