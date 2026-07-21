@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     console.error('API route error fetching chats:', error)
     return NextResponse.json<ChatPageResponse>(
       { chats: [], nextOffset: null },
-      { status: 500 }
+      { status: 200 }
     )
   }
 }
