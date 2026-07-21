@@ -16,7 +16,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 TOKEN = os.environ.get("WATCH_SERVICE_TOKEN", "")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
-PORT = int(os.environ.get("PORT", "8080"))
+PORT = int(os.environ.get("PORT", "7860"))
 
 
 def run(cmd, **kw):

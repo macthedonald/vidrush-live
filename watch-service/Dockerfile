@@ -10,6 +10,6 @@ RUN apt-get update \
 WORKDIR /app
 COPY server.py .
 
-ENV PORT=8080
-EXPOSE 8080
+ENV PORT=7860
+EXPOSE 7860
 CMD ["python", "server.py"]
