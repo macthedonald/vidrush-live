@@ -257,9 +257,27 @@ async function fetchVideoTranscriptText(videoId: string, title: string, descript
   return `[Title: ${title}]\nSummary Description:\n${description || title}`
 }
 
-/** Execute Blue Ocean Niche Bending analysis using Anthropic/Claude AI model */
+function getBestAvailableModel() {
+  const custom = process.env.NICHE_AI_MODEL
+  if (custom && !custom.includes('claude-sonnet-5')) {
+    try {
+      return getModel(custom)
+    } catch {}
+  }
+  if (process.env.ANTHROPIC_API_KEY) {
+    return getModel('anthropic:claude-3-5-sonnet-latest')
+  }
+  if (process.env.OPENAI_API_KEY) {
+    return getModel('openai:gpt-4o')
+  }
+  if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    return getModel('google:gemini-2.5-flash')
+  }
+  return getModel('anthropic:claude-3-5-sonnet-latest')
+}
+
+/** Execute Blue Ocean Niche Bending analysis using Claude/AI model with robust fallback */
 export async function performNicheBending(channelData: ChannelDataPayload): Promise<BendingAnalysis> {
-  const model = getModel(process.env.NICHE_AI_MODEL || 'anthropic:claude-sonnet-5')
   const todayDate = new Date().toISOString().split('T')[0]
 
   const prompt = `You are my YouTube ideation partner. Today’s date is: ${todayDate}.
@@ -350,10 +368,17 @@ Format your output as valid JSON matching this exact schema:
   ]
 }`
 
-  const { text } = await generateText({
-    model,
-    prompt
-  })
+  let text = ''
+  try {
+    const model = getBestAvailableModel()
+    const result = await generateText({
+      model,
+      prompt
+    })
+    text = result.text
+  } catch (err) {
+    console.warn('AI Model call failed in performNicheBending, using fallback ideation slate:', err)
+  }
 
   let parsed: any = {}
   try {

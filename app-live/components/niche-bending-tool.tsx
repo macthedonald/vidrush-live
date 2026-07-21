@@ -55,7 +55,18 @@ export function NicheBendingTool() {
         })
       })
 
-      const json = await res.json()
+      const rawText = await res.text()
+      let json: any = {}
+      try {
+        json = JSON.parse(rawText)
+      } catch {
+        throw new Error(
+          res.ok
+            ? 'Server returned invalid JSON response'
+            : `Server error (${res.status}): ${rawText.slice(0, 100)}`
+        )
+      }
+
       if (!res.ok) {
         throw new Error(json.error || 'Niche Bending request failed')
       }
