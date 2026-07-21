@@ -45,8 +45,28 @@ if (ollamaProvider) {
 export const registry = createProviderRegistry(providers)
 
 export function getModel(model: string): LanguageModel {
-  // Normalize Anthropic model names if alias or invalid strings are passed
-  let targetModel = model
+  let targetModel = (model || '').trim()
+
+  // Ensure target model starts with a provider prefix if missing
+  if (!targetModel.includes(':')) {
+    if (targetModel.startsWith('claude')) {
+      targetModel = `anthropic:${targetModel}`
+    } else if (
+      targetModel.startsWith('gpt') ||
+      targetModel.startsWith('o1') ||
+      targetModel.startsWith('o3') ||
+      targetModel.startsWith('o4')
+    ) {
+      targetModel = `openai:${targetModel}`
+    } else if (targetModel.startsWith('gemini')) {
+      targetModel = `google:${targetModel}`
+    } else {
+      // Default prefix
+      targetModel = `google:${targetModel}`
+    }
+  }
+
+  // Normalize Anthropic model aliases
   if (targetModel.startsWith('anthropic:')) {
     const rawId = targetModel.slice('anthropic:'.length)
     if (
@@ -58,33 +78,38 @@ export function getModel(model: string): LanguageModel {
     ) {
       targetModel = 'anthropic:claude-3-5-sonnet-latest'
     }
-  } else if (
-    targetModel === 'claude-sonnet-5' ||
-    targetModel === 'claude-5' ||
-    targetModel === 'claude-3-5-sonnet' ||
-    targetModel === 'claude-sonnet'
-  ) {
-    targetModel = 'anthropic:claude-3-5-sonnet-latest'
   }
 
-  // Fallback to active provider if requested provider is missing API key
-  if (targetModel.startsWith('anthropic:') && !process.env.ANTHROPIC_API_KEY) {
+  // Normalize Google model aliases / unknown preview names
+  if (targetModel.startsWith('google:')) {
+    const rawId = targetModel.slice('google:'.length)
+    if (
+      rawId.includes('3.1') ||
+      rawId.includes('preview') ||
+      rawId === 'gemini-3.1-flash-lite' ||
+      rawId === 'gemini-3-flash-preview'
+    ) {
+      targetModel = 'google:gemini-2.5-flash'
+    }
+  }
+
+  // Provider fallback: if the target provider is missing an API key, route to an active provider
+  const provider = targetModel.split(':')[0]
+  if (!isProviderEnabled(provider)) {
     if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
       targetModel = 'google:gemini-2.5-flash'
     } else if (process.env.OPENAI_API_KEY) {
       targetModel = 'openai:gpt-4o'
+    } else if (process.env.ANTHROPIC_API_KEY) {
+      targetModel = 'anthropic:claude-3-5-sonnet-latest'
     }
   }
 
   // For Ollama models, bypass the registry to pass model-level settings
-  // that ai-sdk-ollama requires (think, supportedUrls override).
   if (targetModel.startsWith('ollama:') && ollamaProvider) {
     const modelId = targetModel.slice('ollama:'.length)
     const lm = ollamaProvider(modelId, { think: true })
 
-    // Ollama's Chat API only accepts base64 in the images field, not URLs.
-    // Override supportedUrls to force AI SDK to download images and convert
-    // them to base64 before sending to the model.
     Object.defineProperty(lm, 'supportedUrls', {
       value: {},
       configurable: true

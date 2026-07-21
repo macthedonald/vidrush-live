@@ -92,7 +92,7 @@ export function NicheBendingTool() {
   const startChatWithIdea = (idea: IdeaItem) => {
     const prompt = `I want to create a video based on this niche-bending idea:\n\nTitle: ${idea.title}\nAngle: ${idea.angle}\nEngine Pattern: ${idea.enginePattern}\nThumbnail Concept: ${idea.thumbnailConcept}\n\nPlease research the topic, write a high-retention script, cut beats, and generate a storyboard.`
     const encoded = encodeURIComponent(prompt)
-    router.push(`/?prompt=${encoded}`)
+    router.push(`/chat?q=${encoded}`)
   }
 
   return (
