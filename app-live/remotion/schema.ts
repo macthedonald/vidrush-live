@@ -17,7 +17,7 @@ export const wordSchema = z.object({
 })
 
 export const shotSchema = z.object({
-  kind: z.enum(['photo', 'video']),
+  kind: z.enum(['photo', 'video', 'avatar', 'a-roll']),
   /**
    * Public http(s) URL of the resolved asset (the vision-verified pick from
    * sourceFootage). Omit to render a clean brand card for this shot. Lambda cannot

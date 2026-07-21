@@ -1,0 +1,13 @@
+modal>=0.60.0
+fastapi>=0.100.0
+uvicorn>=0.22.0
+torch>=2.0.1
+torchvision
+torchaudio
+opencv-python-headless
+diffusers
+transformers
+accelerate
+soundfile
+librosa
+requests

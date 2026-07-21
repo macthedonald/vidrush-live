@@ -10,6 +10,7 @@ import { createTodoTools } from '../tools/todo'
 import { createCloneVoiceTool } from '../tools/video/clone-voice'
 import { createComposeRenderTool } from '../tools/video/compose-render'
 import { createCutBeatsTool } from '../tools/video/cut-beats'
+import { createGenerateAvatarTool } from '../tools/video/generate-avatar'
 import { createGenerateImageTool } from '../tools/video/generate-image'
 import { createGenerateMusicTool } from '../tools/video/generate-music'
 import { createGenerateThumbnailTool } from '../tools/video/generate-thumbnail'
@@ -109,6 +110,7 @@ export function createResearcher({
     const generateImageTool = createGenerateImageTool()
     const generateThumbnailTool = createGenerateThumbnailTool()
     const learnFromVideoTool = createLearnFromVideoTool()
+    const generateAvatarTool = createGenerateAvatarTool()
 
     let systemPrompt: string
     let activeToolsList: (keyof ResearcherTools)[] = []
@@ -119,7 +121,7 @@ export function createResearcher({
     switch (searchMode) {
       case 'quick':
         console.log(
-          '[Researcher] Quick mode: maxSteps=20, tools=[search, fetch, writeScript, sourceFootage, cutBeats, listVoices, generateVoiceover, cloneVoice, generateMusic, generateImage, generateThumbnail, composeRender]'
+          '[Researcher] Quick mode: maxSteps=20, tools=[search, fetch, writeScript, sourceFootage, cutBeats, listVoices, generateVoiceover, cloneVoice, generateMusic, generateImage, generateThumbnail, generateAvatar, composeRender]'
         )
         systemPrompt = getQuickModePrompt(relatedEnabled)
         activeToolsList = [
@@ -135,6 +137,7 @@ export function createResearcher({
           'generateImage',
           'generateThumbnail',
           'learnFromVideo',
+          'generateAvatar',
           'composeRender'
         ]
         maxSteps = 20
@@ -158,6 +161,7 @@ export function createResearcher({
           'generateImage',
           'generateThumbnail',
           'learnFromVideo',
+          'generateAvatar',
           'composeRender'
         ]
         console.log(
@@ -182,10 +186,11 @@ You are also Kakkao, an agentic YouTube video producer. When the user wants a vi
 4. BEATS: call cutBeats to segment the script into an ordered storyboard of shots (each gets a visualQuery, a visualIntent and a still/clip hint). Pass the voiceoverId so the shot durations and captions lock to the actual spoken audio instead of estimates.
 5. FOOTAGE: for each shot, call sourceFootage with that shot's visualQuery and visualIntent. It pools open archives (Wikimedia, Internet Archive, National Archives) AND the general web via the same search provider you use for research, ranks the candidates, and vision-verifies the best pick. Use the plain search tool for exploratory "what footage exists" questions; use sourceFootage when you need actual usable b-roll for a specific scene.
 5b. GENERATED VISUALS: when no real footage fits a beat (abstract concepts, stylized scenes, or when sourceFootage comes up empty), call generateImage (gpt-image-2 via AI33) with a cinematic prompt to create a still, and use its imageUrl as that shot's src in composeRender. Prefer real sourced footage first; use generated images to fill gaps.
+5c. A-ROLL / TALKING AVATAR: when the video or a shot calls for an A-roll talking presenter/host speaking the narration, call generateAvatar with the voiceoverId or audioUrl and an optional avatar portrait URL. It uses our Modal-hosted MuseTalk engine to synthesize a synchronized talking avatar MP4 video. Use the returned videoUrl as the src with kind "avatar" or "video" for A-roll shots in composeRender.
 6. MUSIC (optional): call generateMusic with a mood/genre prompt to create a background bed; pass its audioUrl as composeRender's music input (it is ducked automatically under the narration).
 7. RENDER: call composeRender with the storyboard shots (each carrying its resolved asset src, start, duration and words), the voiceoverId (its audio is mixed in automatically) and any music URL to produce the finished MP4 (Ken Burns, crossfades, karaoke captions, ducked audio). Shots with no asset render as clean brand cards.
 8. THUMBNAIL (optional): call generateThumbnail (nano-banana-pro via AI33) with a click-worthy concept, optional bold titleText, and an optional referenceImageUrl (a face/subject/logo) to produce a 16:9 YouTube thumbnail. Offer this after the video is rendered, or whenever the user asks for a thumbnail.
-The natural pipeline is writeScript → generateVoiceover → cutBeats (with voiceoverId) → sourceFootage (per shot, generateImage to fill gaps) → [generateMusic] → composeRender (with voiceoverId + music) → [generateThumbnail]. Present returned scripts as-is (they are clean spoken narration) and narrate progress through the pipeline as you go.`
+The natural pipeline is writeScript → generateVoiceover → cutBeats (with voiceoverId) → sourceFootage / generateAvatar (for A-roll talking head shots) → [generateMusic] → composeRender (with voiceoverId + music) → [generateThumbnail]. Present returned scripts as-is (they are clean spoken narration) and narrate progress through the pipeline as you go.`
     systemPrompt = systemPrompt + kakkaoPrompt
 
     // Build tools object with proper typing
@@ -203,6 +208,7 @@ The natural pipeline is writeScript → generateVoiceover → cutBeats (with voi
       generateImage: generateImageTool,
       generateThumbnail: generateThumbnailTool,
       learnFromVideo: learnFromVideoTool,
+      generateAvatar: generateAvatarTool,
       composeRender: composeRenderTool,
       ...todoTools
     } as ResearcherTools

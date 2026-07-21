@@ -9,7 +9,7 @@ import type { VoiceoverHandle } from './generate-voiceover'
 import { type StoryboardInput, storyboardInputSchema } from '@/remotion/schema'
 
 const shotSchema = z.object({
-  kind: z.enum(['photo', 'video']),
+  kind: z.enum(['photo', 'video', 'avatar', 'a-roll']),
   src: z
     .string()
     .optional()

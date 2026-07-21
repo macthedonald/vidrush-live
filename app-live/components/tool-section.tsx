@@ -4,6 +4,7 @@ import { UseChatHelpers } from '@ai-sdk/react'
 
 import type { ToolPart, UIDataTypes, UIMessage, UITools } from '@/lib/types/ai'
 
+import AvatarSection from './avatar-section'
 import BeatsSection from './beats-section'
 import CloneSection from './clone-section'
 import FetchSection from './fetch-section'
@@ -208,6 +209,17 @@ export function ToolSection({
       return (
         <LearnVideoSection
           tool={tool as ToolPart<'learnFromVideo'>}
+          isOpen={isOpen}
+          onOpenChange={onOpenChange}
+          borderless={borderless}
+          isFirst={isFirst}
+          isLast={isLast}
+        />
+      )
+    case 'tool-generateAvatar':
+      return (
+        <AvatarSection
+          tool={tool as ToolPart<'generateAvatar'>}
           isOpen={isOpen}
           onOpenChange={onOpenChange}
           borderless={borderless}

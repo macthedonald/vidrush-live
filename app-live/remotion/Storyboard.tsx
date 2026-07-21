@@ -53,7 +53,13 @@ const ShotLayer: React.FC<{
   if (!shot.src) {
     // Clean fallback card — a solid accent frame, no text (the "no card clutter" rule).
     inner = <AbsoluteFill style={{ backgroundColor: accent }} />
-  } else if (shot.kind === 'video') {
+  } else if (
+    shot.kind === 'video' ||
+    shot.kind === 'avatar' ||
+    shot.kind === 'a-roll' ||
+    shot.src.endsWith('.mp4') ||
+    shot.src.startsWith('data:video/')
+  ) {
     inner = (
       <OffthreadVideo
         src={shot.src}
