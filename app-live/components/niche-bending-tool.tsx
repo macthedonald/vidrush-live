@@ -9,7 +9,7 @@ import {
   IconCopy,
   IconCompass,
   IconFlame,
-  IconLayers,
+  IconCode,
   IconPlayerPlay,
   IconSearch,
   IconSparkles,
@@ -144,7 +144,7 @@ export function NicheBendingTool() {
                 onClick={() => setShowJsonModal(!showJsonModal)}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background/80 px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-muted transition"
               >
-                <IconLayers className="h-3.5 w-3.5" /> {showJsonModal ? 'Hide Channel JSON' : 'View Channel JSON'}
+                <IconCode className="h-3.5 w-3.5" /> {showJsonModal ? 'Hide Channel JSON' : 'View Channel JSON'}
               </button>
               <button
                 onClick={copyJson}
