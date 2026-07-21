@@ -83,12 +83,16 @@ export function extractChannelIdentifier(input: string): { type: 'handle' | 'id'
 }
 
 /** Fetch channel metadata & top videos from YouTube Data API */
-export async function fetchChannelData(channelInput: string): Promise<ChannelDataPayload> {
+export async function fetchChannelData(
+  channelInput: string,
+  maxVideos: number = 10
+): Promise<ChannelDataPayload> {
   const key = YOUTUBE_API_KEY()
   if (!key) {
     throw new Error('YOUTUBE_API_KEY is missing in server environment.')
   }
 
+  const limit = Math.min(20, Math.max(5, maxVideos))
   const parsed = extractChannelIdentifier(channelInput)
   let channelId = ''
   let channelSnippet: any = null
@@ -125,23 +129,24 @@ export async function fetchChannelData(channelInput: string): Promise<ChannelDat
       `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${encodeURIComponent(parsed.query)}&maxResults=1&key=${key}`
     )
     const searchJson = await searchRes.json()
-    if (!searchJson.items?.length) {
-      throw new Error(`Could not find YouTube channel for "${channelInput}". Check URL or handle.`)
-    }
-    channelId = searchJson.items[0].id.channelId
-    const res = await fetch(
-      `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,contentDetails&id=${channelId}&key=${key}`
-    )
-    const json = await res.json()
-    if (json.items?.length) {
-      channelSnippet = json.items[0].snippet
-      channelStats = json.items[0].statistics
-      uploadsPlaylistId = json.items[0].contentDetails?.relatedPlaylists?.uploads || ''
+    if (searchJson.items?.length) {
+      channelId = searchJson.items[0].id?.channelId || searchJson.items[0].snippet?.channelId || ''
+      if (channelId) {
+        const res = await fetch(
+          `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,contentDetails&id=${channelId}&key=${key}`
+        )
+        const json = await res.json()
+        if (json.items?.length) {
+          channelSnippet = json.items[0].snippet
+          channelStats = json.items[0].statistics
+          uploadsPlaylistId = json.items[0].contentDetails?.relatedPlaylists?.uploads || ''
+        }
+      }
     }
   }
 
   if (!channelId || !channelSnippet) {
-    throw new Error('Failed to resolve YouTube channel metadata.')
+    throw new Error(`Could not locate YouTube channel for "${channelInput}". Please check the channel handle or URL.`)
   }
 
   const metadata: ChannelMetadata = {
@@ -152,24 +157,26 @@ export async function fetchChannelData(channelInput: string): Promise<ChannelDat
     video_count: parseInt(channelStats.videoCount || '0', 10)
   }
 
-  // Fetch recent / popular videos from uploads playlist or search
+  // Fetch recent / popular videos up to limit (5-20)
   let videoIds: string[] = []
   if (uploadsPlaylistId) {
     const playRes = await fetch(
-      `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${uploadsPlaylistId}&maxResults=10&key=${key}`
+      `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${uploadsPlaylistId}&maxResults=${limit}&key=${key}`
     )
     const playJson = await playRes.json()
     if (playJson.items?.length) {
-      videoIds = playJson.items.map((i: any) => i.contentDetails?.videoId || i.snippet?.resourceId?.videoId).filter(Boolean)
+      videoIds = playJson.items
+        .map((i: any) => i.contentDetails?.videoId || i.snippet?.resourceId?.videoId)
+        .filter(Boolean)
     }
   }
 
   if (!videoIds.length) {
     const searchVidRes = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&order=viewCount&type=video&maxResults=10&key=${key}`
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&order=viewCount&type=video&maxResults=${limit}&key=${key}`
     )
     const searchVidJson = await searchVidRes.json()
-    videoIds = (searchVidJson.items || []).map((i: any) => i.id.videoId).filter(Boolean)
+    videoIds = (searchVidJson.items || []).map((i: any) => i.id?.videoId).filter(Boolean)
   }
 
   const videos: ChannelVideo[] = []
@@ -180,11 +187,12 @@ export async function fetchChannelData(channelInput: string): Promise<ChannelDat
       `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${videoIds.join(',')}&key=${key}`
     )
     const vidsJson = await vidsRes.json()
+    const rawItems = vidsJson.items || []
 
-    for (const item of vidsJson.items || []) {
+    for (const item of rawItems) {
       const vId = item.id
       const vTitle = item.snippet?.title || ''
-      const vidObj: ChannelVideo = {
+      videos.push({
         video_id: vId,
         title: vTitle,
         published_at: item.snippet?.publishedAt || new Date().toISOString(),
@@ -192,23 +200,29 @@ export async function fetchChannelData(channelInput: string): Promise<ChannelDat
         likes: parseInt(item.statistics?.likeCount || '0', 10),
         comments: parseInt(item.statistics?.commentCount || '0', 10),
         duration: item.contentDetails?.duration || 'PT0M0S'
-      }
-      videos.push(vidObj)
-
-      // Fetch captions or summary snippet for transcript representation
-      try {
-        const transText = await fetchVideoTranscriptText(vId, vTitle, item.snippet?.description || '')
-        if (transText) {
-          transcripts.push({
-            title: vTitle,
-            video_id: vId,
-            text: transText
-          })
-        }
-      } catch {
-        // Best effort transcript fetch
-      }
+      })
     }
+
+    // Parallelize transcript fetching with 3s fast timeout per video
+    const transcriptPromises = rawItems.map(async (item: any) => {
+      const vId = item.id
+      const vTitle = item.snippet?.title || ''
+      const desc = item.snippet?.description || ''
+      try {
+        const text = await Promise.race([
+          fetchVideoTranscriptText(vId, vTitle, desc),
+          new Promise<string>(resolve =>
+            setTimeout(() => resolve(`[Title: ${vTitle}]\nSummary Description:\n${desc || vTitle}`), 2500)
+          )
+        ])
+        return { title: vTitle, video_id: vId, text }
+      } catch {
+        return { title: vTitle, video_id: vId, text: `[Title: ${vTitle}]\nSummary Description:\n${desc || vTitle}` }
+      }
+    })
+
+    const fetchedTranscripts = await Promise.all(transcriptPromises)
+    transcripts.push(...fetchedTranscripts)
   }
 
   return { metadata, videos, transcripts }

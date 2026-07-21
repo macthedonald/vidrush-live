@@ -44,7 +44,8 @@ export async function POST(req: Request) {
       case 'bend': {
         if (!body.channelUrl)
           return NextResponse.json({ error: 'channelUrl required' }, { status: 400 })
-        const channelData = await fetchChannelData(String(body.channelUrl))
+        const maxVid = Math.min(20, Math.max(5, Number(body.maxVideos) || 10))
+        const channelData = await fetchChannelData(String(body.channelUrl), maxVid)
         const analysis = await performNicheBending(channelData)
         return NextResponse.json({ data: analysis })
       }
