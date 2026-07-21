@@ -69,7 +69,6 @@ export const Header: React.FC<HeaderProps> = ({ user }) => {
               Library
             </Button>
           )}
-          {user ? <UserMenu user={user} /> : <GuestMenu />}
         </div>
       </header>
 

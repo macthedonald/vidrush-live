@@ -1,24 +1,29 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
 
+import type { User } from '@supabase/supabase-js'
+
 import { cn } from '@/lib/utils'
 
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarRail,
   SidebarTrigger
 } from '@/components/ui/sidebar'
 
+import GuestMenu from './guest-menu'
 import { ChatHistorySection } from './sidebar/chat-history-section'
 import { ChatHistorySkeleton } from './sidebar/chat-history-skeleton'
 import { NavMenuItems } from './sidebar/nav-menu-items'
 import { NewChatMenuItem } from './sidebar/new-chat-menu-item'
 import { IconLogo } from './ui/icons'
+import UserMenu from './user-menu'
 
-export default function AppSidebar() {
+export default function AppSidebar({ user }: { user?: User | null }) {
   return (
     <Sidebar side="left" variant="sidebar" collapsible="offcanvas">
       <SidebarHeader className="flex flex-row justify-between items-center">
@@ -39,6 +44,9 @@ export default function AppSidebar() {
           </Suspense>
         </div>
       </SidebarContent>
+      <SidebarFooter className="p-3 border-t border-sidebar-border/60 flex items-center justify-between">
+        {user ? <UserMenu user={user} /> : <GuestMenu />}
+      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   )

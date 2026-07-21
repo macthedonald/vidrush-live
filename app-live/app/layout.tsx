@@ -89,7 +89,7 @@ export default async function RootLayout({
             <UserProvider hasUser={!!userId}>
               <SidebarProvider defaultOpen={false}>
                 <LibraryProvider>
-                  {userId && <AppSidebar />}
+                  {userId && <AppSidebar user={user} />}
                   <KeyboardShortcutHandler />
                   <div className="flex flex-col flex-1 min-w-0">
                     <Header user={user} />

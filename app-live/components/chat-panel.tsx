@@ -431,16 +431,16 @@ export function ChatPanel({
   return (
     <div
       className={cn(
-        'w-full bg-background group/form-container shrink-0',
+        'w-full bg-background group/form-container shrink-0 transition-all duration-300',
         messages.length > 0
           ? 'sticky bottom-0 px-2 pb-2 md:pb-4'
-          : 'px-4 md:px-6'
+          : 'my-auto flex flex-col items-center justify-center py-12 md:py-24 px-4 md:px-6'
       )}
     >
       {messages.length === 0 && (
-        <div className="mb-6 md:mb-10 flex flex-col items-center gap-2 md:gap-4">
-          <IconBlinkingLogo className="size-12" />
-          <h1 className="text-xl md:text-2xl font-medium text-foreground">
+        <div className="mb-6 md:mb-8 flex flex-col items-center gap-3 text-center">
+          <IconBlinkingLogo className="size-14 md:size-16" />
+          <h1 className="text-2xl md:text-3xl font-semibold text-foreground tracking-tight">
             What would you like to know?
           </h1>
         </div>
@@ -941,35 +941,6 @@ export function ChatPanel({
             </div>
           </div>
         </div>
-
-        {/* Action buttons for prompt suggestions */}
-        {messages.length === 0 && (
-          <ActionButtons
-            onSelectPrompt={message => {
-              // Set the input value and submit
-              handleInputChange({
-                target: { value: message }
-              } as React.ChangeEvent<HTMLTextAreaElement>)
-              // Submit the form after a small delay to ensure the input is updated
-              setTimeout(() => {
-                inputRef.current?.form?.requestSubmit()
-                // Reset focus state after action button submission
-                setIsInputFocused(false)
-                inputRef.current?.blur()
-              }, INPUT_UPDATE_DELAY_MS)
-            }}
-            onCategoryClick={category => {
-              // Set the category in the input
-              handleInputChange({
-                target: { value: category }
-              } as React.ChangeEvent<HTMLTextAreaElement>)
-              // Focus the input
-              inputRef.current?.focus()
-            }}
-            inputRef={inputRef}
-            className="mt-2 hidden md:block"
-          />
-        )}
       </form>
       <LibraryPickerDialog
         open={isLibraryPickerOpen}
