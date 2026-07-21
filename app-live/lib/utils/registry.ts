@@ -45,6 +45,14 @@ if (ollamaProvider) {
 export const registry = createProviderRegistry(providers)
 
 export function getModel(model: string): LanguageModel {
+  // Normalize Anthropic model names if invalid/legacy strings are passed
+  if (model.startsWith('anthropic:')) {
+    const rawId = model.slice('anthropic:'.length)
+    if (rawId === 'claude-sonnet-5' || rawId === 'claude-5' || rawId === 'claude-3-sonnet') {
+      model = 'anthropic:claude-3-5-sonnet-latest'
+    }
+  }
+
   // For Ollama models, bypass the registry to pass model-level settings
   // that ai-sdk-ollama requires (think, supportedUrls override).
   if (model.startsWith('ollama:') && ollamaProvider) {

@@ -234,7 +234,8 @@ async function fetchVideoTranscriptText(videoId: string, title: string, descript
   if (process.env.WATCH_SERVICE_URL) {
     try {
       const svc = process.env.WATCH_SERVICE_URL.replace(/\/$/, '')
-      const r = await fetch(`${svc}/watch`, {
+      const targetUrl = svc.endsWith('/watch') ? svc : (svc.includes('.modal.run') ? svc : `${svc}/watch`)
+      const r = await fetch(targetUrl, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',

@@ -441,7 +441,7 @@ export function ChatPanel({
         <div className="mb-6 md:mb-8 flex flex-col items-center gap-3 text-center">
           <IconBlinkingLogo className="size-14 md:size-16" />
           <h1 className="text-2xl md:text-3xl font-semibold text-foreground tracking-tight">
-            What would you like to know?
+            What video do you want to create?
           </h1>
         </div>
       )}
@@ -532,6 +532,7 @@ export function ChatPanel({
               target: { value: '' }
             } as React.ChangeEvent<HTMLTextAreaElement>)
             append({ role: 'user', parts })
+            window.dispatchEvent(new Event('chat-history-updated'))
             setIsInputFocused(false)
             inputRef.current?.blur()
             return
@@ -548,6 +549,7 @@ export function ChatPanel({
             return
           }
           handleSubmit(e)
+          window.dispatchEvent(new Event('chat-history-updated'))
           // Reset focus state after submission
           setIsInputFocused(false)
           inputRef.current?.blur()

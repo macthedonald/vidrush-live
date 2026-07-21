@@ -102,7 +102,6 @@ export default async function RootLayout({
             </UserProvider>
           </PostHogProvider>
           <Toaster />
-          <Analytics />
         </ThemeProvider>
       </body>
     </html>

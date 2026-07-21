@@ -12,7 +12,7 @@ export function NewChatMenuItem() {
       <SidebarMenuButton asChild>
         <Link href="/" className="flex items-center gap-2">
           <Plus className="size-4" />
-          <span>New</span>
+          <span>New Video</span>
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>

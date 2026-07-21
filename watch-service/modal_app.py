@@ -12,17 +12,30 @@ import modal
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .apt_install("ffmpeg", "ca-certificates", "curl")
+    .pip_install("fastapi[standard]")
     .run_commands(
         "curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp",
         "chmod a+rx /usr/local/bin/yt-dlp"
     )
 )
 
+from fastapi import FastAPI, Request
+
 app = modal.App("vidrush-watch-service")
+web_app = FastAPI()
+
+@web_app.post("/")
+@web_app.post("/watch")
+async def watch_endpoint(request: Request):
+    data = await request.json()
+    return watch_impl(data)
 
 @app.function(image=image, timeout=300)
-@modal.web_endpoint(method="POST")
-def watch(data: dict):
+@modal.asgi_app()
+def fastapi_app():
+    return web_app
+
+def watch_impl(data: dict):
     url = data.get("url")
     if not url:
         return {"error": "url required"}, 400
