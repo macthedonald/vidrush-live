@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 
@@ -91,6 +92,8 @@ export function RenderSection({
     />
   )
 
+  const [showPlayer, setShowPlayer] = useState(false)
+
   return (
     <div className="relative">
       {borderless && (
@@ -125,8 +128,51 @@ export function RenderSection({
         </div>
         {output && isOpen && (
           <div className="space-y-3 px-4 pb-4 text-sm">
-            {/* Inline Remotion preview — identical to the Studio canvas + Lambda render. */}
-            {output.inputProps && <RemotionPreview input={output.inputProps} />}
+            {/* Inline Remotion preview — loaded on-demand to save memory & prevent browser crash */}
+            {output.inputProps && (
+              <div>
+                {showPlayer ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        Interactive Remotion Player
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowPlayer(false)}
+                        className="text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        Close Preview (Free Memory) ✕
+                      </button>
+                    </div>
+                    <RemotionPreview input={output.inputProps} />
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-border bg-muted/40 p-6 text-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <Movie className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold">
+                        Storyboard Ready ({output.shots} shots · {fmt(output.totalSeconds)})
+                      </h4>
+                      <p className="text-xs text-muted-foreground">
+                        Interactive player is paused to keep your browser fast.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowPlayer(true)}
+                        className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground hover:bg-secondary/80"
+                      >
+                        ▶ Play Interactive Preview
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground">
               <span className="flex items-center gap-1">
