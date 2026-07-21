@@ -405,7 +405,7 @@ export function Chat({
   useEffect(() => {
     // Only scroll if this chat is currently visible in the URL
     const isCurrentChat =
-      window.location.pathname === `/search/${chatId}` ||
+      window.location.pathname === `/chat/${chatId}` ||
       (window.location.pathname === '/' && sections.length > 0)
 
     if (isCurrentChat && sections.length > 0) {
@@ -512,7 +512,7 @@ export function Chat({
       // Push URL state immediately after sending message (for new chats)
       // Check if we're on the root path (new chat)
       if (!isGuest && window.location.pathname === '/') {
-        window.history.pushState({}, '', `/search/${chatId}`)
+        window.history.pushState({}, '', `/chat/${chatId}`)
       }
     }
   }

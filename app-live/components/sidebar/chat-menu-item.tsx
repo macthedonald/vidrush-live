@@ -81,7 +81,7 @@ const formatDateWithTime = (date: Date | string) => {
 
 export function ChatMenuItem({ chat }: ChatMenuItemProps) {
   const pathname = usePathname()
-  const path = `/search/${chat.id}`
+  const path = `/chat/${chat.id}`
   const isActive = pathname === path
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
