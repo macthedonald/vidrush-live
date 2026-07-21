@@ -2,14 +2,16 @@ import { NextResponse } from 'next/server'
 
 import { nicheVerdicts, suggestSubNiches } from '@/lib/niche/ai'
 import { analyzeKeyword } from '@/lib/niche/analyze'
+import { fetchChannelData, performNicheBending } from '@/lib/niche/bending'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
-// POST /api/niche — one endpoint, three actions:
+// POST /api/niche — one endpoint, four actions:
 //   { action: 'analyze', keyword, days?, region?, format? } → NicheResult
 //   { action: 'suggest', topic } → string[]
 //   { action: 'verdicts', summary } → Record<keyword, verdict>
+//   { action: 'bend', channelUrl } → BendingAnalysis
 export async function POST(req: Request) {
   let body: any
   try {
@@ -38,6 +40,13 @@ export async function POST(req: Request) {
       case 'verdicts': {
         const verdicts = await nicheVerdicts(String(body.summary || ''))
         return NextResponse.json({ verdicts })
+      }
+      case 'bend': {
+        if (!body.channelUrl)
+          return NextResponse.json({ error: 'channelUrl required' }, { status: 400 })
+        const channelData = await fetchChannelData(String(body.channelUrl))
+        const analysis = await performNicheBending(channelData)
+        return NextResponse.json({ data: analysis })
       }
       default:
         return NextResponse.json({ error: 'unknown action' }, { status: 400 })
