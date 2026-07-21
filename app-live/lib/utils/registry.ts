@@ -45,18 +45,41 @@ if (ollamaProvider) {
 export const registry = createProviderRegistry(providers)
 
 export function getModel(model: string): LanguageModel {
-  // Normalize Anthropic model names if invalid/legacy strings are passed
-  if (model.startsWith('anthropic:')) {
-    const rawId = model.slice('anthropic:'.length)
-    if (rawId === 'claude-sonnet-5' || rawId === 'claude-5' || rawId === 'claude-3-sonnet') {
-      model = 'anthropic:claude-3-5-sonnet-latest'
+  // Normalize Anthropic model names if alias or invalid strings are passed
+  let targetModel = model
+  if (targetModel.startsWith('anthropic:')) {
+    const rawId = targetModel.slice('anthropic:'.length)
+    if (
+      rawId === 'claude-sonnet-5' ||
+      rawId === 'claude-5' ||
+      rawId === 'claude-sonnet' ||
+      rawId === 'claude-3-5-sonnet' ||
+      rawId === 'claude-3-sonnet'
+    ) {
+      targetModel = 'anthropic:claude-3-5-sonnet-latest'
+    }
+  } else if (
+    targetModel === 'claude-sonnet-5' ||
+    targetModel === 'claude-5' ||
+    targetModel === 'claude-3-5-sonnet' ||
+    targetModel === 'claude-sonnet'
+  ) {
+    targetModel = 'anthropic:claude-3-5-sonnet-latest'
+  }
+
+  // Fallback to active provider if requested provider is missing API key
+  if (targetModel.startsWith('anthropic:') && !process.env.ANTHROPIC_API_KEY) {
+    if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+      targetModel = 'google:gemini-2.5-flash'
+    } else if (process.env.OPENAI_API_KEY) {
+      targetModel = 'openai:gpt-4o'
     }
   }
 
   // For Ollama models, bypass the registry to pass model-level settings
   // that ai-sdk-ollama requires (think, supportedUrls override).
-  if (model.startsWith('ollama:') && ollamaProvider) {
-    const modelId = model.slice('ollama:'.length)
+  if (targetModel.startsWith('ollama:') && ollamaProvider) {
+    const modelId = targetModel.slice('ollama:'.length)
     const lm = ollamaProvider(modelId, { think: true })
 
     // Ollama's Chat API only accepts base64 in the images field, not URLs.
@@ -71,7 +94,7 @@ export function getModel(model: string): LanguageModel {
   }
 
   return registry.languageModel(
-    model as Parameters<typeof registry.languageModel>[0]
+    targetModel as Parameters<typeof registry.languageModel>[0]
   )
 }
 
