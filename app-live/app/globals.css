@@ -490,11 +490,31 @@
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
   * {
     @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Smooth custom scrollbars across the application */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: oklch(0.35 0 0 / 0.4);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.55 0 0 / 0.7);
   }
 
   /* Tailwind v4: Restore pointer cursor for buttons */

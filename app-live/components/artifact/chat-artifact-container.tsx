@@ -149,7 +149,7 @@ export function ChatArtifactContainer({
         className="hidden md:flex flex-1 min-w-0 overflow-hidden"
       >
         {/* Chat Panel - Independent container */}
-        <div className="flex-1 min-w-0 flex flex-col">{children}</div>
+        <div className="flex-1 min-w-0 flex flex-col h-full overflow-y-auto scroll-smooth">{children}</div>
 
         {/* Resize Handle */}
         {panelOpen && (
@@ -195,7 +195,7 @@ export function ChatArtifactContainer({
       )}
 
       {/* Mobile: full-width chat + drawer */}
-      <div className="md:hidden flex-1 h-full min-w-0">
+      <div className="md:hidden flex-1 h-full min-w-0 overflow-y-auto scroll-smooth">
         {children}
         <InspectorDrawer />
       </div>
