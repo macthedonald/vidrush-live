@@ -52,7 +52,12 @@ describe('fetch-models', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     const models = await fetchModels.fetchOpenAIModels()
-    expect(models.map(model => model.id)).toEqual(['gpt-5-mini', 'o3-mini'])
+    expect(models.map(model => model.id)).toEqual([
+      'gpt-4-turbo',
+      'gpt-4o',
+      'gpt-5-mini',
+      'o3-mini'
+    ])
   })
 
   it('groups models by provider and caches results', async () => {
@@ -96,7 +101,7 @@ describe('fetch-models', () => {
     })
     expect(Object.keys(grouped).sort()).toEqual(['Anthropic', 'OpenAI'])
     expect(grouped.OpenAI?.[0]?.id).toBe('gpt-5-mini')
-    expect(grouped.Anthropic?.[0]?.id).toBe('claude-sonnet-4')
+    expect(grouped.Anthropic?.[0]?.id).toBe('claude-3-5-sonnet')
 
     await fetchModels.fetchAvailableModels()
     expect(fetchMock).toHaveBeenCalledTimes(2)
@@ -143,6 +148,18 @@ describe('fetch-models', () => {
     const models = await fetchModels.fetchGatewayModels()
     expect(models).toEqual([
       {
+        id: 'google/gemini-2.0-flash',
+        name: 'Gemini 2.0 Flash',
+        provider: 'Gateway',
+        providerId: 'gateway'
+      },
+      {
+        id: 'openai/gpt-4o',
+        name: 'GPT-4o',
+        provider: 'Gateway',
+        providerId: 'gateway'
+      },
+      {
         id: 'openai/gpt-5-mini',
         name: 'GPT-5 Mini',
         provider: 'Gateway',
@@ -188,7 +205,10 @@ describe('fetch-models', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     const models = await fetchModels.fetchGoogleModels()
-    expect(models.map(model => model.id)).toEqual(['gemini-2.5-pro'])
+    expect(models.map(model => model.id)).toEqual([
+      'gemini-2.0-flash',
+      'gemini-2.5-pro'
+    ])
   })
 
   it('adds think provider options for ollama thinking models', async () => {

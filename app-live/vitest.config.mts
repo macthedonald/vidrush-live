@@ -11,7 +11,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './'),
-      'zod/v4': 'zod'
+      'zod/v4': 'zod',
+      'server-only': path.resolve(__dirname, './vitest.setup.ts')
     }
   },
   test: {

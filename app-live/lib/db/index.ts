@@ -10,28 +10,13 @@ import * as schema from './schema'
 const isDevelopment = process.env.NODE_ENV === 'development'
 const isTest = process.env.NODE_ENV === 'test'
 
-if (
-  !process.env.DATABASE_URL &&
-  !process.env.DATABASE_RESTRICTED_URL &&
-  !isTest
-) {
-  throw new Error(
-    'DATABASE_URL or DATABASE_RESTRICTED_URL environment variable is not set'
-  )
-}
-
 // Connection with connection pooling for server environments
 // Prefer restricted user for application runtime
 const connectionString =
   process.env.DATABASE_RESTRICTED_URL ?? // Prefer restricted user
   process.env.DATABASE_URL ??
-  (isTest ? 'postgres://user:pass@localhost:5432/testdb' : undefined)
+  'postgres://user:pass@localhost:5432/kakkao'
 
-if (!connectionString) {
-  throw new Error(
-    'DATABASE_URL or DATABASE_RESTRICTED_URL environment variable is not set'
-  )
-}
 
 // Log which connection is being used (for debugging)
 if (isDevelopment) {

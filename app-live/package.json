@@ -13,7 +13,7 @@
     "format:check": "prettier --check .",
     "migrate": "bun run lib/db/migrate.ts",
     "backfill:file-keys": "bun run scripts/backfill-file-object-keys.ts",
-    "test": "NODE_ENV=test vitest run",
+    "test": "vitest run",
     "test:watch": "vitest --watch",
     "chat": "bun run scripts/chat-cli.ts",
     "remotion:studio": "remotion studio",

@@ -1,8 +1,8 @@
 import { Model } from '@/lib/types/models'
 
 export const DEFAULT_MODEL: Model = {
-  id: 'claude-3-5-sonnet-latest',
-  name: 'Claude 3.5 Sonnet',
+  id: 'claude-sonnet-5',
+  name: 'Claude Sonnet 5',
   provider: 'Anthropic',
   providerId: 'anthropic'
 }

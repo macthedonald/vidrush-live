@@ -76,7 +76,7 @@ export function getModel(model: string): LanguageModel {
       rawId === 'claude-3-5-sonnet' ||
       rawId === 'claude-3-sonnet'
     ) {
-      targetModel = 'anthropic:claude-3-5-sonnet-latest'
+      targetModel = 'anthropic:claude-sonnet-5'
     }
   }
 
@@ -101,7 +101,7 @@ export function getModel(model: string): LanguageModel {
     } else if (process.env.OPENAI_API_KEY) {
       targetModel = 'openai:gpt-4o'
     } else if (process.env.ANTHROPIC_API_KEY) {
-      targetModel = 'anthropic:claude-3-5-sonnet-latest'
+      targetModel = 'anthropic:claude-sonnet-5'
     }
   }
 

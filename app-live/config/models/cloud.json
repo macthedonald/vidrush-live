@@ -2,16 +2,16 @@
   "version": 2,
   "models": {
     "quick": {
-      "id": "gemini-2.5-flash",
-      "name": "Gemini 2.5 Flash",
-      "provider": "Google",
-      "providerId": "google"
+      "id": "claude-sonnet-5",
+      "name": "Claude Sonnet 5",
+      "provider": "Anthropic",
+      "providerId": "anthropic"
     },
     "adaptive": {
-      "id": "gemini-2.5-flash",
-      "name": "Gemini 2.5 Flash",
-      "provider": "Google",
-      "providerId": "google"
+      "id": "claude-sonnet-5",
+      "name": "Claude Sonnet 5",
+      "provider": "Anthropic",
+      "providerId": "anthropic"
     }
   }
 }
