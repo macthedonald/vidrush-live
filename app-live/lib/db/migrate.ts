@@ -2,7 +2,14 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import { migrate } from 'drizzle-orm/postgres-js/migrator'
 import postgres from 'postgres'
 
-import 'dotenv/config'
+import dotenv from 'dotenv'
+import fs from 'fs'
+
+if (fs.existsSync('.env.local')) {
+  dotenv.config({ path: '.env.local', override: true })
+} else {
+  dotenv.config({ override: true })
+}
 
 // This script is used to run migrations on the database
 // Run it with: bun run lib/db/migrate.ts
