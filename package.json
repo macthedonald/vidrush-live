@@ -4,6 +4,9 @@
   "type": "module",
   "description": "Kakkao Live — agentic video studio (Kakkao-style chat + Remotion: in-chat Player preview and Remotion Lambda render).",
   "scripts": {
+    "build": "cd app-live && npm run build",
+    "start": "cd app-live && npm run start",
+    "dev": "cd app-live && npm run dev",
     "spike:assets": "node spike/gen-assets.mjs",
     "spike:body": "node spike/render-ffmpeg.mjs"
   },
