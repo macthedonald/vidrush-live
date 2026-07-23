@@ -102,9 +102,10 @@ export function sanitizeMessagesForModel(
 
     // Fallback if all parts were filtered out (ensure non-empty text)
     if (filteredParts.length === 0) {
+      const msgContent = (msg as any).content
       const fallbackText =
-        typeof msg.content === 'string' && msg.content.trim()
-          ? msg.content.trim()
+        typeof msgContent === 'string' && msgContent.trim()
+          ? msgContent.trim()
           : '[Assistant response completed]'
       sanitized.push({
         ...msg,
