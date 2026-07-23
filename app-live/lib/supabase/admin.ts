@@ -1,8 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 
+import { getSupabaseUrl } from './keys'
+
 export function createAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const secretKey = process.env.SUPABASE_SECRET_KEY
+  const url = getSupabaseUrl()
+  const secretKey = (process.env.SUPABASE_SECRET_KEY || '').replace(/^[\uFEFF\u200B\s]+|[\uFEFF\u200B\s]+$/g, '').trim()
 
   if (!url || !secretKey) {
     throw new Error(
