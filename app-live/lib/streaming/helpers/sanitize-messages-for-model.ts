@@ -37,61 +37,86 @@ export function sanitizeMessagesForModel(
 ): UIMessage[] {
   if (!messages || messages.length === 0) return []
 
-  const lastUserIndex = messages.findLastIndex(m => m.role === 'user')
+  // Collect all toolCallIds that have matching tool-result parts across all messages
+  const resolvedToolCallIds = new Set<string>()
+  for (const msg of messages) {
+    if (msg.parts) {
+      for (const part of msg.parts as any[]) {
+        if (part.type === 'tool-result' && part.toolCallId) {
+          resolvedToolCallIds.add(part.toolCallId)
+        }
+      }
+    }
+  }
 
-  return messages.map((msg, index) => {
+  const sanitized: UIMessage[] = []
+
+  for (const msg of messages) {
     if (msg.role !== 'assistant' || !msg.parts) {
-      return msg
+      sanitized.push(msg)
+      continue
     }
 
-    const isPreviousTurn = lastUserIndex >= 0 && index < lastUserIndex
-
     const filteredParts = msg.parts
-      .filter(part => {
-        // Strip reasoning parts for OpenAI or previous turns
-        if (part.type === 'reasoning') {
-          if (options?.isOpenAI || isPreviousTurn) return false
+      .filter((part: any) => {
+        // Strip reasoning parts if requested
+        if (part.type === 'reasoning' && options?.isOpenAI) {
+          return false
         }
 
-        // Strip custom UI tool parts
+        // Strip custom UI-only tool parts
         if (UI_TOOL_TYPES.has(part.type)) {
           return false
         }
 
-        // Strip tool call/result parts from previous turns to prevent Anthropic orphan tool_use errors
+        // Strip tool-calls that don't have a corresponding tool-result
         if (
-          isPreviousTurn &&
-          (part.type === 'tool-call' ||
-            part.type === 'tool-result' ||
-            part.type === 'tool-invocation' ||
-            part.type?.startsWith?.('tool-'))
+          (part.type === 'tool-call' || part.type === 'tool-invocation') &&
+          part.toolCallId &&
+          !resolvedToolCallIds.has(part.toolCallId)
         ) {
+          return false
+        }
+
+        // Strip dangling tool-result without toolCallId
+        if (part.type === 'tool-result' && !part.toolCallId) {
           return false
         }
 
         return true
       })
-      .map(part => {
+      .map((part: any) => {
         if (part.type === 'text' && typeof part.text === 'string') {
           const stripped = stripSpecBlocks(part.text)
-          if (stripped !== part.text) {
-            return { ...part, text: stripped }
-          }
+          return { ...part, text: stripped }
         }
         return part
       })
+      // Filter out empty text parts
+      .filter((part: any) => {
+        if (part.type === 'text') {
+          return typeof part.text === 'string' && part.text.trim().length > 0
+        }
+        return true
+      })
 
-    // If all parts were filtered out, preserve plain text if available
+    // Fallback if all parts were filtered out (ensure non-empty text)
     if (filteredParts.length === 0) {
-      return {
+      const fallbackText =
+        typeof msg.content === 'string' && msg.content.trim()
+          ? msg.content.trim()
+          : '[Assistant response completed]'
+      sanitized.push({
         ...msg,
-        parts: [{ type: 'text', text: msg.content || '' }]
-      }
+        parts: [{ type: 'text', text: fallbackText }]
+      })
+    } else {
+      sanitized.push({
+        ...msg,
+        parts: filteredParts
+      })
     }
+  }
 
-    return {
-      ...msg,
-      parts: filteredParts
-    }
-  })
+  return sanitized
 }
