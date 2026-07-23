@@ -9,6 +9,7 @@ import { getModelSelectorData } from '@/lib/model-selector/get-model-selector-da
 import { Chat } from '@/components/chat'
 
 export const maxDuration = 60
+export const dynamic = 'force-dynamic'
 
 export async function generateMetadata(props: {
   params: Promise<{ id: string }>

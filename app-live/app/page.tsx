@@ -3,6 +3,8 @@ import { getModelSelectorData } from '@/lib/model-selector/get-model-selector-da
 
 import { Chat } from '@/components/chat'
 
+export const dynamic = 'force-dynamic'
+
 export default async function Page() {
   const userId = await getCurrentUserId()
   const isCloudDeployment = process.env.KAKKAO_CLOUD_DEPLOYMENT === 'true'

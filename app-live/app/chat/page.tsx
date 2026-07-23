@@ -7,6 +7,7 @@ import { generateUUID } from '@/lib/utils'
 import { Chat } from '@/components/chat'
 
 export const maxDuration = 60
+export const dynamic = 'force-dynamic'
 
 export default async function ChatQueryPage(props: {
   searchParams: Promise<{ q: string }>
