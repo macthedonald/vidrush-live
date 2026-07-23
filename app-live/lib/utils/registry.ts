@@ -74,9 +74,10 @@ export function getModel(model: string): LanguageModel {
       rawId === 'claude-5' ||
       rawId === 'claude-sonnet' ||
       rawId === 'claude-3-5-sonnet' ||
-      rawId === 'claude-3-sonnet'
+      rawId === 'claude-3-sonnet' ||
+      rawId === 'claude-3-5-sonnet-latest'
     ) {
-      targetModel = 'anthropic:claude-sonnet-5'
+      targetModel = 'anthropic:claude-3-5-sonnet-latest'
     }
   }
 
@@ -93,15 +94,15 @@ export function getModel(model: string): LanguageModel {
     }
   }
 
-  // Provider fallback: if the target provider is missing an API key, route to an active provider
+  // Provider fallback: if the target provider is missing an API key, route to active Anthropic provider
   const provider = targetModel.split(':')[0]
   if (!isProviderEnabled(provider)) {
-    if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    if (process.env.ANTHROPIC_API_KEY) {
+      targetModel = 'anthropic:claude-3-5-sonnet-latest'
+    } else if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
       targetModel = 'google:gemini-2.5-flash'
     } else if (process.env.OPENAI_API_KEY) {
       targetModel = 'openai:gpt-4o'
-    } else if (process.env.ANTHROPIC_API_KEY) {
-      targetModel = 'anthropic:claude-sonnet-5'
     }
   }
 

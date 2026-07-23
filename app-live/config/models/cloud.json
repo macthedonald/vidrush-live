@@ -2,13 +2,13 @@
   "version": 2,
   "models": {
     "quick": {
-      "id": "claude-sonnet-5",
+      "id": "claude-3-5-sonnet-latest",
       "name": "Claude Sonnet 5",
       "provider": "Anthropic",
       "providerId": "anthropic"
     },
     "adaptive": {
-      "id": "claude-sonnet-5",
+      "id": "claude-3-5-sonnet-latest",
       "name": "Claude Sonnet 5",
       "provider": "Anthropic",
       "providerId": "anthropic"

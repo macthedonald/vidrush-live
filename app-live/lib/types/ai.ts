@@ -48,9 +48,9 @@ export type UIDataTypes = {
 
 // Create tool instances for type inference
 const todoTools = createTodoTools()
-const writeScriptTool = createWriteScriptTool('anthropic:claude-sonnet-5')
+const writeScriptTool = createWriteScriptTool('anthropic:claude-3-5-sonnet-latest')
 const sourceFootageTool = createSourceFootageTool()
-const cutBeatsTool = createCutBeatsTool('anthropic:claude-sonnet-5')
+const cutBeatsTool = createCutBeatsTool('anthropic:claude-3-5-sonnet-latest')
 const composeRenderTool = createComposeRenderTool()
 const generateVoiceoverTool = createGenerateVoiceoverTool()
 const listVoicesTool = createListVoicesTool()
