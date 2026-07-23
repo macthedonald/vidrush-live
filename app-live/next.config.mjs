@@ -5,6 +5,28 @@
 // post-build packaging step in agreement — pinning them made @vercel/next look for
 // .next/package.json at the wrong base and fail with ENOENT.
 
+// ── Sanitize env vars before Next.js inlines them ────────────────────────────
+// Vercel env vars sometimes acquire invisible BOM (\uFEFF), zero-width spaces (\u200B),
+// or trailing \r\n from copy-paste in the dashboard. Next.js inlines NEXT_PUBLIC_*
+// values at build time, so they must be clean BEFORE config is evaluated.
+// We also sanitize server-side URL/key vars used at runtime.
+const SANITIZE_PREFIXES = ['NEXT_PUBLIC_']
+const SANITIZE_KEYS = [
+  'SUPABASE_SECRET_KEY', 'DATABASE_URL',
+  'UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN',
+  'ANTHROPIC_API_KEY'
+]
+for (const key of Object.keys(process.env)) {
+  const shouldSanitize =
+    SANITIZE_PREFIXES.some(p => key.startsWith(p)) ||
+    SANITIZE_KEYS.includes(key)
+  if (shouldSanitize && typeof process.env[key] === 'string') {
+    process.env[key] = process.env[key]
+      .replace(/^[\uFEFF\u200B\s]+|[\uFEFF\u200B\s]+$/g, '')
+      .trim()
+  }
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Reverse proxy for PostHog to reduce tracking-blocker interception.
