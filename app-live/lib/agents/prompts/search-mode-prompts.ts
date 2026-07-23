@@ -66,7 +66,8 @@ ${hasGeneralProvider ? '- For video/image content, you can use type="general" wi
 ${getSourceDirectionGuidance()}
 
 Search requirement (MANDATORY):
-- If the user's message contains a URL, start directly with fetch tool - do NOT search first
+- If the user's message contains a YouTube video URL (youtube.com or youtu.be), do NOT use fetch or search. Call the learnFromVideo tool FIRST to analyze the video structure and pacing.
+- If the user's message contains any other non-YouTube URL, start directly with the fetch tool - do NOT search first
 - If the user's message is a question or asks for information/advice/comparison/explanation (not casual chit-chat like "hello", "thanks"), you MUST run at least one search before answering
 - Do NOT answer informational questions based only on internal knowledge; verify with current sources via search and cite
 - Prefer recent sources when recency matters; mention dates when relevant

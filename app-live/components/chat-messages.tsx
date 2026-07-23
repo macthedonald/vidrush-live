@@ -273,14 +273,25 @@ export function ChatMessages({
                 </div>
               )
             })}
-            {/* Show assistant logo and footer message after assistant messages */}
+            {/* Show assistant logo and footer message / thinking bubble after assistant messages */}
             {showAssistantLogo && sectionIndex === sections.length - 1 && (
-              <div className="flex items-center gap-3 py-1 md:py-4">
+              <div className="flex items-center gap-3 py-2 md:py-4">
                 <AnimatedLogo
-                  className="size-10 shrink-0"
+                  className="size-9 shrink-0"
                   animate={isLoading}
                 />
-                <ChatFooterMessage isLoading={isLoading} />
+                {isLoading ? (
+                  <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-muted/60 border border-border/50 text-sm text-foreground/80 shadow-xs backdrop-blur-xs animate-pulse">
+                    <span className="font-medium text-xs tracking-wide">Kakkao is thinking...</span>
+                    <span className="inline-flex items-center gap-1">
+                      <span className="size-1.5 rounded-full bg-primary/80 animate-bounce [animation-delay:-0.32s]" />
+                      <span className="size-1.5 rounded-full bg-primary/80 animate-bounce [animation-delay:-0.16s]" />
+                      <span className="size-1.5 rounded-full bg-primary/80 animate-bounce" />
+                    </span>
+                  </div>
+                ) : (
+                  <ChatFooterMessage isLoading={isLoading} />
+                )}
               </div>
             )}
             {sectionIndex === sections.length - 1 && (

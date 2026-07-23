@@ -163,6 +163,23 @@ export const fetchTool = tool({
     'Fetch content from any URL. By default uses "regular" type which performs fast, direct HTML fetching without external APIs - ideal for most websites. IMPORTANT: "regular" type does NOT support PDFs and will fail on PDF URLs. Use "api" type when you need: 1) PDF content extraction (required for .pdf URLs), 2) Complex JavaScript-rendered pages, 3) Better markdown formatting, 4) Table extraction. The "api" type requires Jina or Tavily API keys and uses Jina Reader if available, otherwise falls back to Tavily Extract.',
   inputSchema: fetchSchema,
   async *execute({ url, type = 'regular' }) {
+    // Redirect YouTube URLs to learnFromVideo tool guidance
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      yield {
+        state: 'complete' as const,
+        results: [
+          {
+            title: 'YouTube Video Link',
+            content: `YouTube URL detected (${url}). Please call the learnFromVideo tool to analyze video structure, transcript, and pacing.`,
+            url
+          }
+        ],
+        query: '',
+        images: []
+      }
+      return
+    }
+
     // Yield initial fetching state
     yield {
       state: 'fetching' as const,

@@ -23,6 +23,7 @@ import {
 import { isUsageLogging, logUsage } from '../utils/usage-logging'
 
 import { convertDataPart } from './helpers/convert-data-part'
+import { sanitizeMessagesForModel } from './helpers/sanitize-messages-for-model'
 import { stripReasoningParts } from './helpers/strip-reasoning-parts'
 import { stripSpecFromMessages } from './helpers/strip-spec-from-messages'
 import { BaseStreamConfig } from './types'
@@ -76,10 +77,7 @@ export async function createEphemeralChatStreamResponse(
 
   try {
     const isOpenAI = `${model.providerId}:${model.id}`.startsWith('openai:')
-    const messagesWithoutSpec = stripSpecFromMessages(messages)
-    const messagesToConvert = isOpenAI
-      ? stripReasoningParts(messagesWithoutSpec)
-      : messagesWithoutSpec
+    const messagesToConvert = sanitizeMessagesForModel(messages, { isOpenAI })
 
     let modelMessages = await convertToModelMessages(messagesToConvert, {
       convertDataPart

@@ -38,5 +38,14 @@ export async function getCurrentUserId() {
   }
 
   const user = await getCurrentUser()
-  return user?.id
+  if (user?.id) {
+    return user.id
+  }
+
+  // If user is not logged in via Supabase Auth and auth is not strictly enforced:
+  if (process.env.ENABLE_AUTH !== 'true') {
+    return process.env.ANONYMOUS_USER_ID || 'anonymous-user'
+  }
+
+  return undefined
 }
