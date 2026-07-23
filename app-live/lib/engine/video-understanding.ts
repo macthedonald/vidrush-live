@@ -84,7 +84,7 @@ async function analyzeWithClaude(
   if (!frames?.length) throw new Error('watch service returned no frames')
 
   const { text } = await generateText({
-    model: getModel(process.env.LEARN_VIDEO_CLAUDE_MODEL || 'anthropic:claude-3-5-sonnet-latest'),
+    model: getModel(process.env.LEARN_VIDEO_CLAUDE_MODEL || 'anthropic:claude-sonnet-5'),
     system: ANALYSIS_SYS,
     messages: [
       {

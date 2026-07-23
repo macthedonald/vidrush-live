@@ -413,13 +413,13 @@ async function fetchVideoTranscriptText(videoId: string, title: string, descript
 
 function getBestAvailableModel() {
   const custom = process.env.NICHE_AI_MODEL
-  if (custom && !custom.includes('claude-3-5-sonnet-latest')) {
+  if (custom && !custom.includes('claude-sonnet-5')) {
     try {
       return getModel(custom)
     } catch {}
   }
   if (process.env.ANTHROPIC_API_KEY) {
-    return getModel('anthropic:claude-3-5-sonnet-latest')
+    return getModel('anthropic:claude-sonnet-5')
   }
   if (process.env.OPENAI_API_KEY) {
     return getModel('openai:gpt-4o')
@@ -427,7 +427,7 @@ function getBestAvailableModel() {
   if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     return getModel('google:gemini-2.5-flash')
   }
-  return getModel('anthropic:claude-3-5-sonnet-latest')
+  return getModel('anthropic:claude-sonnet-5')
 }
 
 /** Execute Blue Ocean Niche Bending analysis using Claude/AI model with robust fallback */

@@ -6,7 +6,7 @@ import { getModel } from '@/lib/utils/registry'
 
 import 'server-only'
 
-const MODEL = process.env.NICHE_AI_MODEL || 'anthropic:claude-3-5-sonnet-latest'
+const MODEL = process.env.NICHE_AI_MODEL || 'anthropic:claude-sonnet-5'
 
 const SYS_SUBNICHES = `You are a YouTube niche strategist. Given a broad topic, return ONLY a JSON array of 8 specific, faceless-channel-friendly sub-niche search keywords (2-4 words each, English). Favor niches with strong search demand and story potential. Example: ["ancient rome mysteries","medieval castle secrets"]`
 const SYS_VERDICT = `You are a YouTube niche analyst. For each niche you receive metrics for, write a 1-2 sentence sharp verdict (monetization potential, content angle, who wins here). Return ONLY JSON: {"<keyword>":"verdict", ...}`

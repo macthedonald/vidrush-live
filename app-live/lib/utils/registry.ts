@@ -66,7 +66,7 @@ export function getModel(model: string): LanguageModel {
     }
   }
 
-  // Normalize Anthropic model aliases
+  // Normalize Anthropic model aliases to claude-sonnet-5
   if (targetModel.startsWith('anthropic:')) {
     const rawId = targetModel.slice('anthropic:'.length)
     if (
@@ -77,7 +77,7 @@ export function getModel(model: string): LanguageModel {
       rawId === 'claude-3-sonnet' ||
       rawId === 'claude-3-5-sonnet-latest'
     ) {
-      targetModel = 'anthropic:claude-3-5-sonnet-latest'
+      targetModel = 'anthropic:claude-sonnet-5'
     }
   }
 
@@ -98,7 +98,7 @@ export function getModel(model: string): LanguageModel {
   const provider = targetModel.split(':')[0]
   if (!isProviderEnabled(provider)) {
     if (process.env.ANTHROPIC_API_KEY) {
-      targetModel = 'anthropic:claude-3-5-sonnet-latest'
+      targetModel = 'anthropic:claude-sonnet-5'
     } else if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
       targetModel = 'google:gemini-2.5-flash'
     } else if (process.env.OPENAI_API_KEY) {
