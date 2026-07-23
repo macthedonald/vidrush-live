@@ -389,6 +389,7 @@ export async function fetchOllamaModels(): Promise<Model[]> {
     return []
   }
 
+  try {
     const rawBaseUrl = process.env.OLLAMA_BASE_URL || ''
     const baseUrl = rawBaseUrl.replace(/^[\uFEFF\u200B\s]+|[\uFEFF\u200B\s]+$/g, '').trim()
     if (!baseUrl) return []
