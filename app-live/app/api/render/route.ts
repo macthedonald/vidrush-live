@@ -53,7 +53,8 @@ export async function POST(req: Request) {
 
 // GET /api/render?renderId=…&bucketName=…  → poll render progress.
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url)
+  const cleanUrl = (req.url || '').replace(/^[\uFEFF\u200B\s]+|[\uFEFF\u200B\s]+$/g, '').trim()
+  const { searchParams } = new URL(cleanUrl || 'http://localhost/api/render')
   const renderId = searchParams.get('renderId')
   const bucketName = searchParams.get('bucketName')
   if (!renderId || !bucketName) {

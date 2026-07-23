@@ -9,7 +9,8 @@ interface ChatPageResponse {
 }
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url)
+  const cleanUrl = (request.url || '').replace(/^[\uFEFF\u200B\s]+|[\uFEFF\u200B\s]+$/g, '').trim()
+  const { searchParams } = new URL(cleanUrl || 'http://localhost/api/chats')
   const offset = parseInt(searchParams.get('offset') || '0', 10)
   const limit = parseInt(searchParams.get('limit') || '20', 10)
 

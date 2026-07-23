@@ -44,7 +44,8 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const { searchParams } = new URL(req.url)
+    const cleanUrl = (req.url || '').replace(/^[\uFEFF\u200B\s]+|[\uFEFF\u200B\s]+$/g, '').trim()
+    const { searchParams } = new URL(cleanUrl || 'http://localhost/api/avatar')
     const id = searchParams.get('id')
     if (!id) {
       return NextResponse.json({ error: 'Avatar ID is required' }, { status: 400 })
