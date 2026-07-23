@@ -389,8 +389,9 @@ export async function fetchOllamaModels(): Promise<Model[]> {
     return []
   }
 
-  try {
-    const baseUrl = process.env.OLLAMA_BASE_URL
+    const rawBaseUrl = process.env.OLLAMA_BASE_URL || ''
+    const baseUrl = rawBaseUrl.replace(/^[\uFEFF\u200B\s]+|[\uFEFF\u200B\s]+$/g, '').trim()
+    if (!baseUrl) return []
     const url = new URL('/api/tags', baseUrl).toString()
     const json = await fetchJson(url, {})
     const data = Array.isArray(json?.models) ? json.models : []

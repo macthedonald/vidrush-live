@@ -4,12 +4,17 @@ import { headers } from 'next/headers'
  * Helper function to get base URL from headers
  * Extracts URL information from Next.js request headers
  */
+function cleanUrlString(raw: string | null | undefined): string {
+  if (!raw) return ''
+  return raw.replace(/^[\uFEFF\u200B\s]+|[\uFEFF\u200B\s]+$/g, '').trim()
+}
+
 export async function getBaseUrlFromHeaders(): Promise<URL> {
   const headersList = await headers()
-  const baseUrl = headersList.get('x-base-url')
-  const url = headersList.get('x-url')
-  const host = headersList.get('x-host')
-  const protocol = headersList.get('x-protocol') || 'http:'
+  const baseUrl = cleanUrlString(headersList.get('x-base-url'))
+  const url = cleanUrlString(headersList.get('x-url'))
+  const host = cleanUrlString(headersList.get('x-host'))
+  const protocol = cleanUrlString(headersList.get('x-protocol')) || 'http:'
 
   try {
     // Try to use the pre-constructed base URL if available
@@ -38,7 +43,7 @@ export async function getBaseUrlFromHeaders(): Promise<URL> {
  */
 export async function getBaseUrl(): Promise<URL> {
   // Check for environment variables first
-  const baseUrlEnv = process.env.NEXT_PUBLIC_BASE_URL || process.env.BASE_URL
+  const baseUrlEnv = cleanUrlString(process.env.NEXT_PUBLIC_BASE_URL || process.env.BASE_URL)
 
   if (baseUrlEnv) {
     try {
