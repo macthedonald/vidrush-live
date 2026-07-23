@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter as FontSans } from 'next/font/google'
 
+export const dynamic = 'force-dynamic'
+
 import { Analytics } from '@vercel/analytics/next'
 
 import { getCurrentUserId } from '@/lib/auth/get-current-user'
