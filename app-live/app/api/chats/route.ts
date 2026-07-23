@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getChatsPage } from '@/lib/actions/chat'
 import { Chat as DBChat } from '@/lib/db/schema'
 
+export const dynamic = 'force-dynamic'
+
 interface ChatPageResponse {
   chats: DBChat[]
   nextOffset: number | null
