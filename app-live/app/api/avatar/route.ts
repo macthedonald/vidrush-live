@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+
+export const dynamic = 'force-dynamic'
 import { getAvatars, saveAvatar, deleteAvatar } from '@/lib/engine/avatars-data'
 
 export async function GET() {

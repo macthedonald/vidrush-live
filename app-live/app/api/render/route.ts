@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 import { kvGetJSON } from '@/lib/engine/kv'
 import {
   getLambdaProgress,

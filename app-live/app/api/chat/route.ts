@@ -1,6 +1,8 @@
 import { revalidateTag } from 'next/cache'
 import { cookies } from 'next/headers'
 
+export const dynamic = 'force-dynamic'
+
 import { loadChat } from '@/lib/actions/chat'
 import {
   calculateConversationTurn,

@@ -1,5 +1,7 @@
 import { Langfuse } from 'langfuse'
 
+export const dynamic = 'force-dynamic'
+
 import { updateMessageFeedback } from '@/lib/actions/feedback'
 import { hasSupabasePublicConfig } from '@/lib/supabase/keys'
 import { createClient } from '@/lib/supabase/server'

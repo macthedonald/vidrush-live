@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 import { nicheVerdicts, suggestSubNiches } from '@/lib/niche/ai'
 import { analyzeKeyword } from '@/lib/niche/analyze'
 import { fetchChannelData, performNicheBending } from '@/lib/niche/bending'

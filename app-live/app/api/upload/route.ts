@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 import { PutObjectCommand } from '@aws-sdk/client-s3'
 
 import { capture } from '@/lib/analytics/dispatch'
