@@ -58,7 +58,13 @@ export function LearnVideoSection({
         output ? (
           <>
             <Check size={16} className="text-green-500" />
-            <span>via {output.provider === 'claude' ? 'Claude' : 'Gemini'}</span>
+            <span>
+              {output.watched === false
+                ? 'Gemini · inferred (video unavailable)'
+                : output.method === 'frames'
+                  ? 'Watched by Gemini · frames'
+                  : 'Watched by Gemini'}
+            </span>
           </>
         ) : failed ? (
           <>

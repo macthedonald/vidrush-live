@@ -17,9 +17,10 @@ const learnSchema = z.object({
 })
 
 // Learn-from-video sub-agent: watch a reference YouTube video and reverse-engineer its
-// structure so the pipeline can recreate the style. Claude watches the frames when a watch
-// service is configured; otherwise Gemini reads the URL directly. The returned template is
-// stashed in KV and echoed to the model so writeScript/cutBeats can follow it.
+// structure so the pipeline can recreate the style. Gemini does the watching — it ingests
+// the YouTube URL natively, so it sees the actual footage and hears the narration. The
+// returned template is stashed in KV and echoed to the model so writeScript/cutBeats can
+// follow it.
 export function createLearnFromVideoTool() {
   return tool({
     description:
@@ -33,12 +34,20 @@ export function createLearnFromVideoTool() {
         state: 'complete' as const,
         templateId,
         provider: analysis.provider,
+        method: analysis.method,
+        watched: analysis.watched,
         hook: analysis.hook,
         phases: analysis.phases,
         pacing: analysis.pacing,
         visualMix: analysis.visualMix,
         narrationDevices: analysis.narrationDevices,
-        summary: analysis.summary
+        summary: analysis.summary,
+        // Surfaced so the agent doesn't present a guess as a real viewing.
+        ...(analysis.watched
+          ? {}
+          : {
+              note: 'The video could not be opened; this structure is inferred from the URL and general knowledge, not from watching it.'
+            })
       }
     }
   })

@@ -28,6 +28,18 @@ const cutBeatsSchema = z.object({
     )
 })
 
+// Segmentation is mechanical structure extraction, not reasoning, and it sits on the
+// critical path where the user is staring at a spinner. The chat model (Opus-class, routed
+// through AgentRouter) takes minutes to emit a long shot array; Flash does the same job in
+// seconds. Override with CUT_BEATS_MODEL, or set it to 'chat' to reuse the chat model.
+function segmentationModel(chatModel: string): string {
+  const override = process.env.CUT_BEATS_MODEL?.trim()
+  if (override) return override === 'chat' ? chatModel : override
+  const hasGemini =
+    !!process.env.GOOGLE_GENERATIVE_AI_API_KEY || !!process.env.GEMINI_API_KEY
+  return hasGemini ? 'google:gemini-2.5-flash' : chatModel
+}
+
 // Segment a narration script into a timed storyboard of shots, each with a footage
 // search query and intent. This is the bridge between writeScript and sourceFootage:
 // run cutBeats on the script, then sourceFootage on each shot's visualQuery/visualIntent.
@@ -45,7 +57,7 @@ export function createCutBeatsTool(model: string) {
         voiceWords = handle?.words
       }
       const storyboard = await cutScriptIntoBeats(
-        model,
+        segmentationModel(model),
         { ...input, voiceWords },
         abortSignal
       )

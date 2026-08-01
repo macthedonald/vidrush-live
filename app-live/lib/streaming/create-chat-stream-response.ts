@@ -178,10 +178,6 @@ export async function createChatStreamResponse(
       }
     }
 
-    console.error('[DEBUG modelMessages]:', JSON.stringify(modelMessages))
-
-
-
     // Start title generation in parallel if it's a new chat
     if (!initialChat && message) {
       const userContent = getTextFromParts(message.parts)
@@ -203,6 +199,10 @@ export async function createChatStreamResponse(
     const result = await researchAgent.stream({
       messages: modelMessages,
       abortSignal,
+      // Emit word-by-word on a short tick instead of forwarding raw provider chunks.
+      // AgentRouter delivers text in large bursts; without this the UI sits still and
+      // then paints a paragraph at once, which reads as a stall.
+      experimental_transform: smoothStream({ delayInMs: 10, chunking: 'word' }),
       ...(isUsageLogging() && {
         onStepFinish: step => {
           logUsage(

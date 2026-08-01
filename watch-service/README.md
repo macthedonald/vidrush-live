@@ -1,11 +1,13 @@
 # Kakkao watch-service
 
-The frame-extraction backend that makes **Claude the primary video-watcher** for the
-learn-from-video sub-agent. Vercel serverless can't run yt-dlp/ffmpeg, so this small service
-does: it downloads a video, extracts scaled JPEG frames, pulls a transcript (native captions,
-or Groq Whisper), and returns them for `app-live/lib/engine/video-understanding.ts` to hand to
-Claude. When it's **not** configured, the sub-agent falls back to Gemini reading the URL
-directly.
+An **optional** frame-extraction fallback for the learn-from-video sub-agent. Gemini normally
+watches YouTube links natively — it ingests the URL directly, so no download is involved and
+this service isn't needed. It only comes into play when a link isn't one Gemini can open
+(or it refuses): the service downloads the video, extracts scaled JPEG frames, pulls a
+transcript (native captions, or Groq Whisper), and returns them for
+`app-live/lib/engine/video-understanding.ts` to hand to Gemini as images. If it isn't
+configured, the sub-agent falls back to reasoning from the URL alone, which it labels as
+not-watched.
 
 ## Contract
 
@@ -49,8 +51,9 @@ Set in the app-live (Vercel) env:
 | `WATCH_SERVICE_URL` | your service URL, e.g. `https://kakkao-watch.fly.dev` |
 | `WATCH_SERVICE_TOKEN` | the same secret you set on the service (if any) |
 
-With these set, `learnFromVideo` uses **Claude** (frames) first and falls back to **Gemini**
-only if the service errors. Without them, it uses **Gemini** directly (`GEMINI_API_KEY`).
+With these set, `learnFromVideo` still prefers **Gemini watching the URL natively**, and only
+falls back to this service's frames when that isn't possible. Either way the watching is done
+by Gemini (`GEMINI_API_KEY`).
 
 > Note on YouTube: datacenter IPs are sometimes rate-limited by YouTube. If downloads fail,
 > configure yt-dlp cookies or a proxy on the host; short clips work best.

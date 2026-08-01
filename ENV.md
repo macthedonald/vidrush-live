@@ -68,14 +68,28 @@ NICHE_AI_MODEL=anthropic:claude-sonnet-5   # [opt] model for sub-niche ideas + v
 
 ### Learn-from-video sub-agent
 
+Gemini does the watching — it ingests a YouTube URL natively, so it sees the real
+footage and hears the narration with no download step.
+
 ```bash
-# Fallback path (always available): Gemini reads the YouTube URL directly.
-GEMINI_API_KEY=…                  # [req unless watch-service] or reuse GOOGLE_GENERATIVE_AI_API_KEY
+GEMINI_API_KEY=…                  # [req] or reuse GOOGLE_GENERATIVE_AI_API_KEY
 LEARN_VIDEO_GEMINI_MODEL=gemini-2.5-flash   # [opt]
-# Primary path (Claude watches frames) — point at your deployed watch-service:
-WATCH_SERVICE_URL=https://kakkao-watch.fly.dev   # [opt] enables Claude-first watching
+LEARN_VIDEO_TIMEOUT_MS=180000     # [opt] ceiling on the native video pass
+# Optional frame fallback, for links Gemini can't open directly. The service returns
+# sampled JPEG frames + a transcript, and Gemini reads those instead.
+WATCH_SERVICE_URL=https://kakkao-watch.fly.dev   # [opt]
 WATCH_SERVICE_TOKEN=…             # [opt] must match the service's token
-LEARN_VIDEO_CLAUDE_MODEL=anthropic:claude-sonnet-5   # [opt]
+```
+
+### Storyboard segmentation (`cutBeats`)
+
+Segmentation is mechanical structure extraction on the critical path, so it defaults to
+Gemini Flash rather than the chat model — seconds instead of minutes on a long script.
+
+```bash
+CUT_BEATS_MODEL=google:gemini-2.5-flash   # [opt] default when a Gemini key is set;
+                                          #       use 'chat' to reuse the chat model
+CUT_BEATS_TIMEOUT_MS=120000               # [opt] deadline; partial shots are kept
 ```
 
 ### Footage sources (optional — Wikimedia + Internet Archive need no key)
@@ -133,7 +147,7 @@ ENABLE_LANGFUSE_TRACING=…   LANGFUSE_SECRET_KEY=…   LANGFUSE_PUBLIC_KEY=… 
 
 ---
 
-## 2) watch-service (Fly.io / Docker) — only for Claude-first video watching
+## 2) watch-service (Fly.io / Docker) — optional frame fallback for video watching
 
 ```bash
 WATCH_SERVICE_TOKEN=<openssl rand -hex 24>   # [opt] shared secret; must equal WATCH_SERVICE_URL's token in app-live

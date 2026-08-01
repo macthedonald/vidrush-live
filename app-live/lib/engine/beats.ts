@@ -4,7 +4,8 @@
 // and estimated word-level timings so the karaoke captions and the FFmpeg xfade chain
 // have a timeline to lock to. Real voiceover word timings replace the estimates later;
 // until then even/character-weighted estimates keep the whole render coherent.
-import { generateText } from 'ai'
+import { streamObject } from 'ai'
+import { z } from 'zod'
 
 import { getModel } from '@/lib/utils/registry'
 
@@ -47,30 +48,50 @@ const DIMS: Record<Storyboard['format'], { width: number; height: number }> = {
 }
 
 const SYS_BEATS = `You are a video editor segmenting a finished narration script into SHOTS for a faceless YouTube video.
-Return ONLY a JSON array. Each element is one shot, in reading order, covering the ENTIRE script with no words dropped or added:
-{
-  "narration": "the exact consecutive words of the script this shot covers (verbatim, no paraphrase)",
-  "kind": "photo" | "video",
-  "visualQuery": "a concrete, specific search phrase to find real b-roll for this shot (e.g. 'Saturn V rocket launch 1969')",
-  "visualIntent": "one plain sentence describing what the shot must SHOW"
-}
+Return one entry per shot, in reading order, covering the ENTIRE script with no words dropped or added.
 Rules:
 - Each shot's narration is a short run of the script (roughly one sentence, 4-30 words). Long sentences may split into 2 shots; never merge unrelated ideas.
 - Concatenating every "narration" in order MUST reproduce the original script exactly (aside from whitespace).
 - Prefer "video" for motion/events/action, "photo" for places, objects, portraits, maps, diagrams.
-- visualQuery must be specific and literal enough to match real archival/stock footage — no abstract concepts.
-- No markdown, no commentary, JSON array only.`
+- visualQuery must be specific and literal enough to match real archival/stock footage — no abstract concepts.`
 
-function extractJsonArray(raw: string): any[] {
-  const text = (raw || '').trim()
-  // Strip code fences if present.
-  const fenced = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '')
-  const start = fenced.indexOf('[')
-  const end = fenced.lastIndexOf(']')
-  if (start === -1 || end === -1 || end <= start) {
-    throw new Error('beat segmentation returned no JSON array')
+const shotSchema = z.object({
+  narration: z
+    .string()
+    .describe(
+      'The exact consecutive words of the script this shot covers (verbatim, no paraphrase)'
+    ),
+  kind: z.enum(['photo', 'video']),
+  visualQuery: z
+    .string()
+    .describe(
+      "A concrete, specific search phrase to find real b-roll for this shot (e.g. 'Saturn V rocket launch 1969')"
+    ),
+  visualIntent: z
+    .string()
+    .describe('One plain sentence describing what the shot must SHOW')
+})
+
+type ShotCore = Omit<BeatShot, 'start' | 'duration' | 'words'>
+
+// Segmentation is the step users watch spin. It used to be a single blocking generateText
+// with no output cap and no deadline: on a long script the model would run for minutes, and
+// any truncation made the trailing JSON unparseable, so the tool threw after the wait. Now
+// we stream the array and keep whatever shots have arrived, so a slow or cut-off generation
+// degrades to a shorter storyboard instead of a crash.
+const BEATS_TIMEOUT_MS = Number(process.env.CUT_BEATS_TIMEOUT_MS || 120_000)
+
+function sanitizeCore(b: unknown, fallbackQuery: string): ShotCore | null {
+  const shot = b as Record<string, unknown> | null
+  const narration =
+    shot && typeof shot.narration === 'string' ? shot.narration.trim() : ''
+  if (!narration) return null
+  return {
+    narration,
+    kind: shot!.kind === 'video' ? 'video' : 'photo',
+    visualQuery: String(shot!.visualQuery || fallbackQuery || narration).trim(),
+    visualIntent: String(shot!.visualIntent || narration).trim()
   }
-  return JSON.parse(fenced.slice(start, end + 1))
 }
 
 // Distribute a shot's duration across its words, weighting by word length so long
@@ -138,10 +159,14 @@ export function bindVoiceTimings(
 
 // Segment a script into a timed storyboard skeleton. LLM does the semantic cut; timings
 // are estimated from word counts (estimatedTimings=true) until real voiceover is bound.
+//
+// `onProgress` fires as shots stream in, so callers can show the storyboard filling up
+// rather than a spinner that sits on "Segmenting into shots…" for the whole generation.
 export async function cutScriptIntoBeats(
   model: string,
   input: CutBeatsInput,
-  abortSignal?: AbortSignal
+  abortSignal?: AbortSignal,
+  onProgress?: (shotsSoFar: number) => void
 ): Promise<Storyboard> {
   const script = (input.script || '').trim()
   if (!script) throw new Error('no script to segment')
@@ -149,23 +174,42 @@ export async function cutScriptIntoBeats(
   const fps = input.fps || 30
   const { width, height } = DIMS[format]
 
-  const res = await generateText({
-    model: getModel(model),
-    system: SYS_BEATS,
-    prompt: `Segment this narration script into shots. Topic: ${input.topic || 'n/a'}.\n\nSCRIPT:\n${script}`,
-    abortSignal
-  })
+  // Fold the caller's signal together with a hard deadline so a stalled generation can
+  // never hang the tool call indefinitely.
+  const deadline = AbortSignal.timeout(BEATS_TIMEOUT_MS)
+  const signal = abortSignal
+    ? AbortSignal.any([abortSignal, deadline])
+    : deadline
 
-  const parsed = extractJsonArray(res.text)
-  // Semantic cores first (narration + visual plan), timings applied after.
-  const cores = parsed
-    .filter((b: any) => b && typeof b.narration === 'string' && b.narration.trim())
-    .map((b: any) => ({
-      narration: String(b.narration).trim(),
-      kind: (b.kind === 'video' ? 'video' : 'photo') as 'photo' | 'video',
-      visualQuery: String(b.visualQuery || input.topic || b.narration).trim(),
-      visualIntent: String(b.visualIntent || b.narration).trim()
-    }))
+  const cores: ShotCore[] = []
+  try {
+    const { elementStream } = streamObject({
+      model: getModel(model),
+      output: 'array',
+      schema: shotSchema,
+      system: SYS_BEATS,
+      prompt: `Segment this narration script into shots. Topic: ${input.topic || 'n/a'}.\n\nSCRIPT:\n${script}`,
+      abortSignal: signal,
+      maxRetries: 1
+    })
+
+    // Each element resolves as soon as it is complete, so shots land progressively.
+    for await (const element of elementStream) {
+      const core = sanitizeCore(element, input.topic || '')
+      if (core) {
+        cores.push(core)
+        onProgress?.(cores.length)
+      }
+    }
+  } catch (error) {
+    // A mid-stream failure (timeout, truncation, transport hiccup) keeps the shots we
+    // already have. Only a total shutout is fatal.
+    if (!cores.length) throw error
+    console.warn(
+      `[Beats] Segmentation ended early after ${cores.length} shots:`,
+      error
+    )
+  }
 
   if (!cores.length) throw new Error('beat segmentation produced no shots')
 
