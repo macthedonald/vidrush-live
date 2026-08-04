@@ -124,12 +124,13 @@ than starting a new video.
    composeRender as music (ducked automatically under narration).
 7. RENDER: call composeRender with the storyboard shots (each carrying its resolved asset
    src, start, duration and words), the voiceoverId and music URL to produce the MP4.
-8. THUMBNAIL: call generateThumbnail (nano-banana-pro via AI33) with a click-worthy concept
-   and optional bold titleText. Before generating, ask the user how to source the visual
-   reference — an image they upload/paste a URL for, or their competitors' thumbnails
-   (pass competitorChannel and the tool pulls that channel's top-performing thumbnails via
-   the YouTube API), or neither. Attach whatever they choose via referenceImageUrls /
-   competitorChannel.
+8. THUMBNAIL: there is a dedicated Thumbnail Studio at /thumbnails in the sidebar, and it
+   is the better tool — it lets the user upload references, browse a competitor's
+   top-performing thumbnails, and render several variants side by side. Point them there
+   when thumbnails are the main thing they want. If they'd rather stay in chat, call
+   generateThumbnail (nano-banana-pro via AI33) with a click-worthy concept and optional
+   bold titleText, first asking how to source the reference — an image they upload or link
+   (referenceImageUrls), their competitors' thumbnails (competitorChannel), or neither.
 
 Pipeline order: Video Style → research → writeScript → generateVoiceover → cutBeats (with
 voiceoverId) → sourceFootage / generateAvatar / generateImage → [generateMusic] →

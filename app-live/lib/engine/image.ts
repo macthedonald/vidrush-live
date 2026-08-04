@@ -91,6 +91,20 @@ async function pollTask(
   throw new Error('AI33 image task timed out')
 }
 
+// Studio uploads arrive as `data:image/jpeg;base64,…` rather than as fetchable URLs.
+// Decoding them here avoids relying on fetch's data: scheme support and keeps the error
+// message useful when the payload is malformed.
+function dataUrlToBlob(dataUrl: string): Blob {
+  const m = /^data:([^;,]+)?(;base64)?,([\s\S]*)$/.exec(dataUrl)
+  if (!m) throw new Error('malformed data URL')
+  const [, mime, isBase64, payload] = m
+  const bytes = isBase64
+    ? Buffer.from(payload, 'base64')
+    : Buffer.from(decodeURIComponent(payload), 'utf8')
+  if (!bytes.length) throw new Error('empty data URL')
+  return new Blob([bytes], { type: mime || 'application/octet-stream' })
+}
+
 export interface ImageResult {
   /** AI33-hosted URL of the generated image. */
   imageUrl: string
@@ -151,9 +165,13 @@ export async function generateImage(
     for (const ref of refs) {
       let blob: Blob
       try {
-        const res = await fetch(ref, { signal: opts.abortSignal })
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        blob = await res.blob()
+        blob = ref.startsWith('data:')
+          ? dataUrlToBlob(ref)
+          : await (async () => {
+              const res = await fetch(ref, { signal: opts.abortSignal })
+              if (!res.ok) throw new Error(`HTTP ${res.status}`)
+              return res.blob()
+            })()
       } catch (error) {
         if (opts.abortSignal?.aborted) throw error
         console.warn(`[Image] Skipping unreadable reference ${ref}:`, error)
