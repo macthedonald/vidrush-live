@@ -4,7 +4,7 @@ import {
   createChat,
   createChatWithFirstMessage,
   deleteMessagesFromIndex,
-  loadChat,
+  loadChatUncached,
   upsertMessage
 } from '@/lib/actions/chat'
 import { generateId } from '@/lib/db/schema'
@@ -30,7 +30,7 @@ export async function prepareMessages(
     // Handle regeneration - use initialChat if available to avoid DB call
     let currentChat = initialChat
     if (!currentChat) {
-      currentChat = await loadChat(chatId, userId)
+      currentChat = await loadChatUncached(chatId, userId)
     }
     if (!currentChat || !currentChat.messages.length) {
       throw new Error('No messages found')
@@ -141,7 +141,7 @@ export async function prepareMessages(
 
     // Fallback to fetching if no initialChat
     const loadStart = performance.now()
-    const updatedChat = await loadChat(chatId, userId)
+    const updatedChat = await loadChatUncached(chatId, userId)
     perfTime('loadChat (fallback) completed', loadStart)
     perfTime('prepareMessages - Total', startTime)
     return updatedChat?.messages || [messageWithId]

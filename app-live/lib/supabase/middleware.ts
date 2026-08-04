@@ -57,6 +57,7 @@ export async function updateSession(request: NextRequest) {
     '/search',
     '/studio',
     '/avatars',
+    '/thumbnails',
     '/api'
   ]
 

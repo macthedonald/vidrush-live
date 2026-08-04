@@ -36,7 +36,13 @@ export function createResearcher({
   model,
   searchMode = 'quick',
   parentTraceId,
-  maxSteps = 10,
+  // A step is one model generation. A single gated turn can legitimately spend
+  // several — a few searches, a fetch or two, then the tool for this stage, then the
+  // text that reports back. At 10 the loop could hit the cap mid-turn and end on a
+  // tool call with no reply at all, which reads as the agent dying halfway. Pacing is
+  // enforced by the prompt's one-stage-per-turn rule, not by starving the step budget,
+  // so this is a safety net rather than the throttle.
+  maxSteps = 24,
   modelConfig
 }: CreateResearcherOptions): ToolLoopAgent<never, ResearcherTools, never> {
   try {
