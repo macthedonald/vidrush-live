@@ -1,34 +1,20 @@
 import type { UIMessage } from 'ai'
+
 import { stripSpecBlocks } from '@/lib/render/strip-spec-blocks'
 
-const UI_TOOL_TYPES = new Set([
-  'tool-search',
-  'tool-fetch',
-  'tool-askQuestion',
-  'tool-writeScript',
-  'tool-sourceFootage',
-  'tool-cutBeats',
-  'tool-listVoices',
-  'tool-generateVoiceover',
-  'tool-cloneVoice',
-  'tool-generateMusic',
-  'tool-generateImage',
-  'tool-generateThumbnail',
-  'tool-learnFromVideo',
-  'tool-generateAvatar',
-  'tool-composeRender',
-  'todoWrite'
-])
+import { isToolPart, summarizeToolParts } from './summarize-tool-parts'
 
 /**
  * Sanitizes UIMessages before converting to model messages.
  *
  * 1. Strips fenced ```spec blocks from text parts.
- * 2. Strips custom UI tool parts.
- * 3. For assistant messages in previous turns (index < lastUserIndex), strips
- *    dangling tool-call / tool-result parts that lack matching responses in history.
- *    This prevents Anthropic API errors like "tool_use block without matching tool_result"
- *    on follow-up messages.
+ * 2. Replaces custom UI tool parts with a plain-text digest of what they produced, so the
+ *    agent still knows which pipeline stages ran and can reuse their ids instead of
+ *    starting the video over. The tool blocks themselves never reach the model, so there
+ *    is no tool_use to leave without a matching tool_result.
+ * 3. For assistant messages in previous turns, strips dangling tool-call / tool-result
+ *    parts that lack matching responses in history. This prevents Anthropic API errors
+ *    like "tool_use block without matching tool_result" on follow-up messages.
  * 4. Strips reasoning parts if isOpenAI is true.
  */
 export function sanitizeMessagesForModel(
@@ -65,6 +51,9 @@ export function sanitizeMessagesForModel(
       continue
     }
 
+    // Condense this turn's tool work into text before the parts are dropped below.
+    const toolDigest = summarizeToolParts(msg.parts as unknown[])
+
     const filteredParts = msg.parts
       .filter((part: any) => {
         // Strip reasoning parts if requested
@@ -72,8 +61,8 @@ export function sanitizeMessagesForModel(
           return false
         }
 
-        // Strip custom UI-only tool parts
-        if (UI_TOOL_TYPES.has(part.type)) {
+        // Strip custom UI-only tool parts — they survive as `toolDigest` text instead.
+        if (isToolPart(part)) {
           return false
         }
 
@@ -107,6 +96,10 @@ export function sanitizeMessagesForModel(
         }
         return true
       })
+
+    if (toolDigest) {
+      filteredParts.push({ type: 'text', text: toolDigest } as any)
+    }
 
     // Fallback if all parts were filtered out (ensure non-empty text)
     if (filteredParts.length === 0) {

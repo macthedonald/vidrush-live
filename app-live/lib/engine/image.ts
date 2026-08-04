@@ -143,22 +143,37 @@ export async function generateImage(
 
   // Reference images: AI33 expects each as an uploaded `assets` file, referenced as
   // @img1, @img2… in the prompt, with the count of @img tokens matching the file count.
+  // A reference that won't download (dead competitor thumbnail, expired signed URL) must
+  // not sink the generation — we drop it and renumber, so the tokens still line up.
   const refs = (opts.referenceImages || []).filter(Boolean)
   if (refs.length) {
     const tokens: string[] = []
-    for (let i = 0; i < refs.length; i++) {
-      const res = await fetch(refs[i], { signal: opts.abortSignal })
-      if (!res.ok) throw new Error(`reference image fetch ${res.status}`)
-      const blob = await res.blob()
-      fd.append('assets', blob, `img${i + 1}`)
-      tokens.push(`@img${i + 1}`)
+    for (const ref of refs) {
+      let blob: Blob
+      try {
+        const res = await fetch(ref, { signal: opts.abortSignal })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        blob = await res.blob()
+      } catch (error) {
+        if (opts.abortSignal?.aborted) throw error
+        console.warn(`[Image] Skipping unreadable reference ${ref}:`, error)
+        continue
+      }
+      const n = tokens.length + 1
+      fd.append('assets', blob, `img${n}`)
+      tokens.push(`@img${n}`)
     }
-    // Ensure the prompt references every uploaded asset (required by the API).
+    // Ensure the prompt references every uploaded asset (required by the API), and drop
+    // @imgN mentions for references that failed to upload.
+    clean = clean
+      .replace(/@img\d+/g, t => (tokens.includes(t) ? t : ''))
+      .replace(/\s{2,}/g, ' ')
+      .trim()
     const missing = tokens.filter(t => !clean.includes(t))
     if (missing.length) {
       clean = `${clean} Use ${missing.join(', ')} as reference.`
-      fd.set('prompt', clean)
     }
+    fd.set('prompt', clean)
   }
 
   const created = await jfetch(`${base}${IMAGE_TASK_PATH}`, {
