@@ -106,11 +106,14 @@ export async function POST(req: Request) {
           const reason = settled.find(r => r.status === 'rejected') as
             | PromiseRejectedResult
             | undefined
-          throw new Error(
+          // Name the model in the failure. An upstream "Invalid model_id" is
+          // indistinguishable from a prompt or key problem otherwise, and the id can come
+          // from AI33_THUMBNAIL_MODEL rather than the code default.
+          const detail =
             reason?.reason instanceof Error
               ? reason.reason.message
               : 'thumbnail generation failed'
-          )
+          throw new Error(`${detail} (model=${DEFAULT_THUMBNAIL_MODEL})`)
         }
 
         return NextResponse.json({
