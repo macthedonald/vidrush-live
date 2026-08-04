@@ -61,7 +61,7 @@ export function createGenerateThumbnailTool() {
     ) => {
       if (!process.env.AI33_API_KEY) {
         throw new Error(
-          'Thumbnail generation is not configured — AI33_API_KEY is missing on the server. Set it (and optionally AI33_THUMBNAIL_MODEL, default nano-banana-pro) in the deployment environment.'
+          'Thumbnail generation is not configured — AI33_API_KEY is missing on the server. Set it (and optionally AI33_THUMBNAIL_MODEL, default gemini-3-pro-image-preview) in the deployment environment.'
         )
       }
 

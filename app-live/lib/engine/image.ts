@@ -1,8 +1,8 @@
 // Kakkao engine — image generation via AI33's Imagen API (https://api.ai33.pro), the same
 // gateway that fronts voiceover and music. Two models flow through here:
-//   • gpt-image-2      — general still / b-roll frame generation
-//   • nano-banana-pro  — Google's Gemini 3 Pro Image, tuned for thumbnails (crisp overlay
-//                        text, reference-image conditioning)
+//   • gpt-image-2                — general still / b-roll frame generation
+//   • gemini-3-pro-image-preview — Google's Gemini 3 Pro Image, a.k.a. "Nano Banana Pro",
+//                        tuned for thumbnails (crisp overlay text, reference conditioning)
 //
 // Per the AI33 docs the Imagen flow is async, task-based, and multipart:
 //   POST /v1i/task/generate-image  (FormData: prompt, model_id, generations_count,
@@ -13,8 +13,13 @@
 
 export const AI33_DEFAULT_BASE = 'https://api.ai33.pro'
 export const DEFAULT_IMAGE_MODEL = process.env.AI33_IMAGE_MODEL || 'gpt-image-2'
+// "Nano Banana Pro" is Google's marketing name for Gemini 3 Pro Image, but AI33 does not
+// accept that string as a model id — posting `nano-banana-pro` returns
+// "Invalid model_id" and every thumbnail render fails. The id AI33 actually publishes for
+// that model is `gemini-3-pro-image-preview` (verified against a live 500 from
+// POST /v1i/task/generate-image, whose error lists the accepted ids).
 export const DEFAULT_THUMBNAIL_MODEL =
-  process.env.AI33_THUMBNAIL_MODEL || 'nano-banana-pro'
+  process.env.AI33_THUMBNAIL_MODEL || 'gemini-3-pro-image-preview'
 const IMAGE_TASK_PATH =
   process.env.AI33_IMAGE_TASK_PATH || '/v1i/task/generate-image'
 
