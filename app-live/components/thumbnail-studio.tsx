@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import {
   IconDownload as Download,
@@ -56,6 +56,46 @@ function downscaleToDataUrl(file: File): Promise<string> {
   })
 }
 
+// How often to ask the API for task status, and when to stop waiting. Measured against the
+// live API: a 2K gemini-3-pro-image render was still going at 31 minutes, with roughly a
+// third of polls answered by a 503 throttle notice. Polling faster than this mostly earns
+// more of those.
+const POLL_INTERVAL_MS = 5000
+const POLL_GIVE_UP_MS = 45 * 60 * 1000
+
+// Renders outlive the page, so pending task ids are kept in localStorage and resumed on
+// load. Without this, closing the tab during a half-hour render loses the image entirely —
+// it finishes upstream and nobody ever collects it.
+const PENDING_KEY = 'thumbnail-studio:pending'
+
+function readPending(): string[] {
+  try {
+    const raw = localStorage.getItem(PENDING_KEY)
+    const ids = raw ? JSON.parse(raw) : []
+    return Array.isArray(ids) ? ids.filter(id => typeof id === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+function writePending(ids: string[]) {
+  try {
+    if (ids.length) localStorage.setItem(PENDING_KEY, JSON.stringify(ids))
+    else localStorage.removeItem(PENDING_KEY)
+  } catch {
+    /* private mode / quota — resumption is a nicety, not a requirement */
+  }
+}
+
+function addPending(ids: string[]) {
+  writePending([...new Set([...readPending(), ...ids])])
+}
+
+function dropPending(ids: string[]) {
+  const gone = new Set(ids)
+  writePending(readPending().filter(id => !gone.has(id)))
+}
+
 export function ThumbnailStudio() {
   const [concept, setConcept] = useState('')
   const [titleText, setTitleText] = useState('')
@@ -74,6 +114,9 @@ export function ThumbnailStudio() {
 
   const [results, setResults] = useState<GeneratedThumb[]>([])
   const [generating, setGenerating] = useState(false)
+  // Seconds spent waiting on the current batch. Renders take minutes, so a spinner with no
+  // sense of progress reads as a hang.
+  const [elapsed, setElapsed] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
 
@@ -82,6 +125,28 @@ export function ThumbnailStudio() {
     .map(c => c.thumbnailUrl)
   const refSlotsUsed = userRefs.length + pickedUrls.length
   const refsFull = refSlotsUsed >= MAX_THUMBNAIL_REFS
+
+  // Resume renders that outlived their page. Two sources: a task id handed over by the
+  // in-chat tool as /thumbnails?task=<id>, and anything left pending in localStorage from
+  // a previous visit. A render can run for half an hour, so this is the difference between
+  // collecting the image and silently losing it.
+  const resumed = useRef(false)
+  useEffect(() => {
+    if (resumed.current) return
+    resumed.current = true
+    const fromUrl = new URLSearchParams(window.location.search).get('task')
+    const ids = [...new Set([...(fromUrl ? [fromUrl] : []), ...readPending()])]
+    if (!ids.length) return
+    addPending(ids)
+    setGenerating(true)
+    setNotice(
+      ids.length > 1
+        ? `Picking up ${ids.length} renders that were already in flight…`
+        : 'Picking up a render that was already in flight…'
+    )
+    void awaitTasks(ids).finally(() => setGenerating(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const addFiles = useCallback(
     async (files: FileList | null) => {
@@ -165,6 +230,7 @@ export function ThumbnailStudio() {
     setGenerating(true)
     setError(null)
     setNotice(null)
+    setElapsed(0)
     try {
       const res = await fetch('/api/thumbnail', {
         method: 'POST',
@@ -180,17 +246,102 @@ export function ThumbnailStudio() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'generation failed')
-      setResults(prev => [...(data.images || []), ...prev])
+
+      const tasks: { taskId: string; model: string; imageUrl?: string }[] =
+        data.tasks || []
+      // A backend that answered synchronously needs no polling.
+      const ready = tasks.filter(t => t.imageUrl)
+      if (ready.length) {
+        setResults(prev => [
+          ...ready.map(t => ({ imageUrl: t.imageUrl!, model: t.model })),
+          ...prev
+        ])
+      }
+      const outstanding = tasks.filter(t => !t.imageUrl).map(t => t.taskId)
+      // Record before waiting: if the tab closes mid-render, the next visit resumes these.
+      if (outstanding.length) addPending(outstanding)
       if (data.failed) {
         setNotice(
-          `${data.failed} of ${data.failed + (data.images?.length || 0)} variants failed; showing the ones that landed.`
+          `${data.failed} of ${data.failed + tasks.length} variants could not be started; waiting on the rest.`
         )
       }
+      if (outstanding.length) await awaitTasks(outstanding)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'generation failed')
     } finally {
       setGenerating(false)
     }
+  }
+
+  /**
+   * Poll until every task resolves, showing each variant the moment it lands.
+   *
+   * Renders routinely run for many minutes — longer than any single serverless request is
+   * allowed to live — so the wait has to happen here in the browser rather than inside the
+   * API route. 'busy' is not a failure: AI33 answers a large share of polls with a 503
+   * throttle notice that says nothing about the render, so it just means "ask again".
+   */
+  async function awaitTasks(taskIds: string[]) {
+    let pending = [...taskIds]
+    const failures: string[] = []
+    const startedAt = Date.now()
+
+    while (pending.length) {
+      await new Promise(r => setTimeout(r, POLL_INTERVAL_MS))
+      setElapsed(Math.round((Date.now() - startedAt) / 1000))
+
+      if (Date.now() - startedAt > POLL_GIVE_UP_MS) {
+        // The tasks are still alive upstream — say so, and leave them in the pending store
+        // so a reload picks them back up rather than stranding them.
+        failures.push(
+          `${pending.length} variant${pending.length > 1 ? 's' : ''} still hadn't finished after ${Math.round(POLL_GIVE_UP_MS / 60000)} minutes — they're still rendering, so reload this page later to collect them`
+        )
+        break
+      }
+
+      let results: {
+        taskId: string
+        status: string
+        imageUrl?: string
+        error?: string
+        model?: string
+      }[]
+      try {
+        const res = await fetch('/api/thumbnail', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ action: 'status', taskIds: pending })
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'status check failed')
+        results = data.results || []
+      } catch {
+        // A dropped status check is not a dead render — keep waiting.
+        continue
+      }
+
+      const landed = results.filter(r => r.status === 'done' && r.imageUrl)
+      if (landed.length) {
+        setResults(prev => [
+          ...landed.map(r => ({
+            imageUrl: r.imageUrl!,
+            model: r.model || 'gemini-3-pro-image-preview'
+          })),
+          ...prev
+        ])
+      }
+      for (const r of results) {
+        if (r.status === 'failed') failures.push(r.error || 'render failed')
+      }
+
+      const resolved = new Set(
+        results.filter(r => r.status === 'done' || r.status === 'failed').map(r => r.taskId)
+      )
+      if (resolved.size) dropPending([...resolved])
+      pending = pending.filter(id => !resolved.has(id))
+    }
+
+    if (failures.length) setNotice(failures.join('; '))
   }
 
   return (
@@ -414,6 +565,7 @@ export function ThumbnailStudio() {
             <>
               <Loader className="size-4 mr-2 animate-spin" />
               Rendering {count > 1 ? `${count} variants` : 'thumbnail'}…
+              {elapsed > 0 && ` ${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')}`}
             </>
           ) : (
             <>

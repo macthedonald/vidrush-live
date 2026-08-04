@@ -2,7 +2,11 @@ import { tool } from 'ai'
 import { z } from 'zod'
 
 import { getCompetitorThumbnails } from '@/lib/engine/competitor-thumbnails'
-import { DEFAULT_THUMBNAIL_MODEL, generateImage } from '@/lib/engine/image'
+import {
+  DEFAULT_THUMBNAIL_MODEL,
+  generateImage,
+  ImageTaskPendingError
+} from '@/lib/engine/image'
 import {
   buildThumbnailPrompt,
   MAX_THUMBNAIL_REFS
@@ -98,20 +102,43 @@ export function createGenerateThumbnailTool() {
 
       const refs = [...userRefs, ...competitorRefs]
 
-      const img = await generateImage(
-        buildThumbnailPrompt(
-          concept,
-          titleText,
-          userRefs.length,
-          competitorRefs.length
-        ),
-        {
-          model: DEFAULT_THUMBNAIL_MODEL,
-          aspectRatio: '16:9',
-          referenceImages: refs.length ? refs : undefined,
-          abortSignal
+      // Hard-bound the wait. This runs inside a streaming chat response whose function is
+      // killed at 300s, and a 2K render has been measured still going past 549s — blocking
+      // until it finishes would take the whole conversation down with it, which is the
+      // "the agent stopped halfway" failure. Give up well before that and hand the user
+      // the Thumbnail Studio, which polls from the browser and has no such ceiling.
+      let img
+      try {
+        img = await generateImage(
+          buildThumbnailPrompt(
+            concept,
+            titleText,
+            userRefs.length,
+            competitorRefs.length
+          ),
+          {
+            model: DEFAULT_THUMBNAIL_MODEL,
+            aspectRatio: '16:9',
+            referenceImages: refs.length ? refs : undefined,
+            timeoutMs: 170000,
+            abortSignal
+          }
+        )
+      } catch (error) {
+        if (error instanceof ImageTaskPendingError) {
+          return {
+            state: 'pending' as const,
+            taskId: error.taskId,
+            model: error.model,
+            studioUrl: `/thumbnails?task=${error.taskId}`,
+            titleText: titleText || undefined,
+            referenceImageUrls: refs.length ? refs : undefined,
+            note: `The render is still going — these take several minutes and I can't hold the conversation open that long. Open the Thumbnail Studio at /thumbnails?task=${error.taskId} and it will pick this exact render up and show it the moment it lands.`,
+            ...(competitorNote ? { competitorNote } : {})
+          }
         }
-      )
+        throw error
+      }
 
       return {
         state: 'complete' as const,

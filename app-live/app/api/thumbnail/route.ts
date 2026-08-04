@@ -3,23 +3,30 @@ import { NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
 
 import { getCompetitorThumbnails } from '@/lib/engine/competitor-thumbnails'
-import { DEFAULT_THUMBNAIL_MODEL, generateImage } from '@/lib/engine/image'
+import {
+  createImageTask,
+  DEFAULT_THUMBNAIL_MODEL,
+  getImageTask
+} from '@/lib/engine/image'
 import {
   buildThumbnailPrompt,
   MAX_THUMBNAIL_REFS
 } from '@/lib/engine/thumbnail-prompt'
 
 export const runtime = 'nodejs'
-// nano-banana-pro renders take well past the default budget; the engine polls AI33.
-export const maxDuration = 300
+// Only long enough to upload references and create the tasks. The render itself is not
+// awaited here — see the 'generate' case.
+export const maxDuration = 60
 
-// POST /api/thumbnail — two actions:
+// POST /api/thumbnail — three actions:
 //   { action: 'competitors', channel, limit? } → { thumbnails: CompetitorThumbnail[] }
 //   { action: 'generate', concept, titleText?, referenceImageUrls?,
-//     competitorImageUrls?, count? } → { images: { imageUrl, model }[] }
+//     competitorImageUrls?, count? } → { tasks: { taskId, model }[], prompt, … }
+//   { action: 'status', taskIds } → { results: { taskId, status, imageUrl?, error? }[] }
 //
 // The studio resolves competitor thumbnails first (so the user can see and deselect
-// them before spending a generation), then sends the chosen URLs back with 'generate'.
+// them before spending a generation), then sends the chosen URLs back with 'generate',
+// then polls 'status' until each task resolves.
 export async function POST(req: Request) {
   let body: any
   try {
@@ -81,13 +88,14 @@ export async function POST(req: Request) {
         )
         const refs = [...userRefs, ...competitorRefs]
 
-        // A studio session is about comparing options, so render a small batch. They go
-        // in parallel — each is an independent AI33 task — and one failure doesn't void
-        // the others.
+        // Start the renders and hand the task ids back straight away. A 2K
+        // gemini-3-pro-image render was measured still running past 549s, and a Vercel
+        // function is killed at 300s — so waiting here could only ever produce a gateway
+        // timeout, however long we set maxDuration. The browser polls 'status' instead.
         const count = Math.min(Math.max(Number(body.count) || 1, 1), 4)
         const settled = await Promise.allSettled(
           Array.from({ length: count }, () =>
-            generateImage(prompt, {
+            createImageTask(prompt, {
               model: DEFAULT_THUMBNAIL_MODEL,
               aspectRatio: '16:9',
               referenceImages: refs.length ? refs : undefined
@@ -95,14 +103,18 @@ export async function POST(req: Request) {
           )
         )
 
-        const images = settled
+        const tasks = settled
           .filter(
-            (r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof generateImage>>> =>
+            (r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof createImageTask>>> =>
               r.status === 'fulfilled'
           )
-          .map(r => ({ imageUrl: r.value.imageUrl, model: r.value.model }))
+          .map(r => ({
+            taskId: r.value.taskId,
+            model: r.value.model,
+            ...(r.value.imageUrl ? { imageUrl: r.value.imageUrl } : {})
+          }))
 
-        if (!images.length) {
+        if (!tasks.length) {
           const reason = settled.find(r => r.status === 'rejected') as
             | PromiseRejectedResult
             | undefined
@@ -117,11 +129,36 @@ export async function POST(req: Request) {
         }
 
         return NextResponse.json({
-          images,
+          tasks,
           prompt,
           referenceImageUrls: refs,
-          failed: settled.length - images.length
+          failed: settled.length - tasks.length
         })
+      }
+
+      case 'status': {
+        const taskIds: string[] = (body.taskIds || [])
+          .map((t: unknown) => String(t || '').trim())
+          .filter(Boolean)
+          .slice(0, 4)
+        if (!taskIds.length) {
+          return NextResponse.json({ error: 'taskIds required' }, { status: 400 })
+        }
+
+        const results = await Promise.all(
+          taskIds.map(async taskId => {
+            try {
+              return { taskId, ...(await getImageTask(taskId)) }
+            } catch (error) {
+              // A thrown poll is not a dead render — report it as busy so the client
+              // keeps waiting rather than discarding a task that is still cooking.
+              console.warn('[Thumbnail] status poll failed', taskId, error)
+              return { taskId, status: 'busy' as const }
+            }
+          })
+        )
+
+        return NextResponse.json({ results })
       }
 
       default:

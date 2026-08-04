@@ -114,7 +114,7 @@ export function ImageSection({
             />
           )}
         </div>
-        {output && isOpen && output.imageUrl && (
+        {output && isOpen && 'imageUrl' in output && output.imageUrl && (
           <div className="space-y-2 px-4 pb-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -129,6 +129,21 @@ export function ImageSection({
               className="inline-block break-all text-xs text-primary underline"
             >
               {output.imageUrl}
+            </a>
+          </div>
+        )}
+        {/* A render that outlived the conversation. The image is still coming; the studio
+            polls from the browser, where there is no request timeout to run into. */}
+        {output && isOpen && 'studioUrl' in output && output.studioUrl && (
+          <div className="space-y-2 px-4 pb-4">
+            {'note' in output && output.note && (
+              <p className="text-xs text-muted-foreground">{output.note}</p>
+            )}
+            <a
+              href={output.studioUrl}
+              className="inline-block text-xs text-primary underline"
+            >
+              Open it in the Thumbnail Studio →
             </a>
           </div>
         )}
