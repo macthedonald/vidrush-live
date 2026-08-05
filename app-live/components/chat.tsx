@@ -4,7 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { useChat } from '@ai-sdk/react'
-import { DefaultChatTransport } from 'ai'
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls
+} from 'ai'
 import { toast } from 'sonner'
 
 import { summarizeGenui } from '@/lib/analytics/genui-summary'
@@ -195,6 +198,12 @@ export function Chat({
       }
     },
     experimental_throttle: 100,
+    // Answering an askQuestion card writes a tool result locally, but nothing goes back to
+    // the server on its own — so picking an option used to sit there doing nothing and the
+    // user had to retype the answer as a normal message. This resubmits automatically as
+    // soon as every tool call on the last assistant message has a result, which is what
+    // turns the option cards into a working part of the conversation.
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     generateId
   })
 

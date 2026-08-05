@@ -94,7 +94,10 @@ function describeOutput(name: string, output: unknown): string {
     bits.push(`shots=${o.shots.length}`)
   }
   if (typeof o.script === 'string' && o.script.trim()) {
-    bits.push(`script="${short(o.script, 1200)}"`)
+    // Deliberately short. The full text is fetched by scriptId at the point of use, so
+    // spending context on a near-complete copy here only crowds out everything else — and
+    // a truncated script is exactly what used to push the agent into rewriting it.
+    bits.push(`scriptPreview="${short(o.script, 300)}"`)
   }
   if (typeof o.summary === 'string' && o.summary.trim()) {
     bits.push(`summary="${short(o.summary, 600)}"`)
@@ -166,7 +169,7 @@ export function summarizeToolParts(parts: unknown[]): string {
 
   if (!lines.length) return ''
 
-  let digest = `[Prior pipeline state — work already completed in this conversation. Reuse these ids and artifacts; do not redo these steps.]\n${lines.join('\n')}`
+  let digest = `[Prior pipeline state — work already completed in this conversation. Reuse these ids and artifacts; do not redo these steps. In particular: if a scriptId is listed, the script is ALREADY WRITTEN — pass that scriptId to generateVoiceover/cutBeats. Never call writeScript again unless the user explicitly asks for a different script.]\n${lines.join('\n')}`
   if (digest.length > MAX_DIGEST_CHARS) {
     digest = `${digest.slice(0, MAX_DIGEST_CHARS)}…`
   }

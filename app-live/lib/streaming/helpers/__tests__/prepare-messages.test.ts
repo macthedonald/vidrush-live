@@ -480,5 +480,67 @@ describe('prepareMessages', () => {
       // The assistant's prior work must survive into the next turn.
       expect(result.some(m => m.role === 'assistant')).toBe(true)
     })
+    // Answering an askQuestion card resubmits the SAME assistant message, now carrying the
+    // tool result. Treating it as a new user turn would mint a fresh id and append a
+    // duplicate copy of the assistant's turn on every option the user picked.
+    it('updates the assistant turn in place on a tool-result continuation', async () => {
+      const assistantWithAnswer: UIMessage = {
+        id: 'asst-1',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'tool-askQuestion',
+            toolCallId: 'call-1',
+            state: 'output-available',
+            input: { question: 'Which style?' },
+            output: { selectedOptions: ['Cinematic B-roll'] }
+          } as never
+        ]
+      }
+
+      const existingChat: Chat & { messages: UIMessage[] } = {
+        id: chatId,
+        title: 'Existing Chat',
+        userId,
+        visibility: 'private',
+        createdAt: new Date(),
+        messages: [
+          { id: 'msg-1', role: 'user', parts: [{ type: 'text', text: 'make a video' }] },
+          { id: 'asst-1', role: 'assistant', parts: [] }
+        ]
+      }
+
+      vi.mocked(upsertMessage).mockResolvedValue({
+        id: 'asst-1',
+        chatId,
+        role: 'assistant',
+        metadata: {},
+        createdAt: new Date(),
+        updatedAt: null
+      })
+
+      const context: StreamContext = {
+        chatId,
+        userId,
+        modelId: 'gpt-4',
+        trigger: 'submit-message',
+        messageId: undefined,
+        initialChat: existingChat,
+        isNewChat: false
+      }
+
+      const result = await prepareMessages(context, assistantWithAnswer)
+
+      // Its own id survives, so the existing row is updated rather than duplicated.
+      expect(upsertMessage).toHaveBeenCalledWith(
+        chatId,
+        expect.objectContaining({ id: 'asst-1', role: 'assistant' }),
+        userId
+      )
+      expect(result).toHaveLength(2)
+      expect(result.filter(m => m.id === 'asst-1')).toHaveLength(1)
+      // And the answer the user picked is the version that reaches the model.
+      expect(result[1].parts).toHaveLength(1)
+    })
   })
 })

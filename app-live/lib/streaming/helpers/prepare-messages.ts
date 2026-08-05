@@ -87,9 +87,16 @@ export async function prepareMessages(
       throw new Error('No message provided')
     }
 
+    // A tool-result continuation, not a new user turn. When the user answers an
+    // askQuestion card the client fills in that tool result and resubmits the SAME
+    // assistant message, so it has to keep its own id: minting a new one would append a
+    // duplicate assistant turn every time an option was picked, and the model would read
+    // its own half-finished turn twice.
+    const isToolResultContinuation = message.role === 'assistant' && !!message.id
+
     const messageWithId = {
       ...message,
-      id: generateId(),
+      id: isToolResultContinuation ? message.id : generateId(),
       parts: await signFilePartUrls(message.parts, {
         allowedKeyPrefix: getUserFileObjectKeyPrefix(userId)
       })
@@ -136,6 +143,18 @@ export async function prepareMessages(
     // If we have initialChat, append the new message instead of fetching all messages
     if (initialChat && initialChat.messages) {
       perfTime('prepareMessages - Total (using cached chat)', startTime)
+      // A resubmitted assistant message already exists in history — replace it in place
+      // rather than appending a second copy of the same turn.
+      if (isToolResultContinuation) {
+        const existing = initialChat.messages.findIndex(
+          m => m.id === messageWithId.id
+        )
+        if (existing !== -1) {
+          const merged = [...initialChat.messages]
+          merged[existing] = messageWithId
+          return merged
+        }
+      }
       return [...initialChat.messages, messageWithId]
     }
 
