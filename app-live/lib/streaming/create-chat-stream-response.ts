@@ -14,7 +14,7 @@ import {
 } from '@/lib/errors/public-error'
 import { isTracingEnabled } from '@/lib/utils/telemetry'
 
-import { loadChat } from '../actions/chat'
+import { loadChatUncached } from '../actions/chat'
 import { generateChatTitle } from '../agents/title-generator'
 import { claimAnonymousChat } from '../db/actions'
 import {
@@ -67,7 +67,7 @@ export async function createChatStreamResponse(
   if (!isNewChat) {
     const loadChatStart = performance.now()
     // Fetch chat data for authorization check and cache it
-    initialChat = await loadChat(chatId, userId)
+    initialChat = await loadChatUncached(chatId, userId)
     perfTime('loadChat completed', loadChatStart)
 
     // Authorization check: the chat must belong to the user. Chats created
@@ -215,7 +215,7 @@ export async function createChatStreamResponse(
     })
 
     // Log the session-total usage once the stream settles (does not block the
-    // response; consumeStream above already drives it to completion).
+    // response; the consumeSseStream copy below drives it to completion).
     if (isUsageLogging()) {
       Promise.resolve(result.totalUsage)
         .then(usage =>
@@ -225,6 +225,13 @@ export async function createChatStreamResponse(
     }
 
     const response = result.toUIMessageStreamResponse({
+      // Drain a tee'd copy of the stream server-side. Without this the generation is
+      // driven only by the client reading it: switch tabs, lose signal, or navigate
+      // away mid-pipeline and the model stops where it stands and onFinish never
+      // runs — so the turn is neither finished nor saved, and the next message looks
+      // to the model like the work was never done. This copy does not block the
+      // response the user is watching.
+      consumeSseStream: consumeStream,
       messageMetadata: ({ part }) => {
         if (part.type === 'start') {
           return {

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createChatWithFirstMessage,
   deleteMessagesFromIndex,
-  loadChat,
+  loadChatUncached,
   upsertMessage
 } from '@/lib/actions/chat'
 import type { Chat } from '@/lib/db/schema'
@@ -93,7 +93,7 @@ describe('prepareMessages', () => {
       )
 
       // Should NOT call loadChat (uses in-memory messages to avoid stale cache)
-      expect(loadChat).not.toHaveBeenCalled()
+      expect(loadChatUncached).not.toHaveBeenCalled()
 
       // Verify only message 1 is returned (correct context for regeneration)
       expect(result).toHaveLength(1)
@@ -167,7 +167,7 @@ describe('prepareMessages', () => {
       )
 
       // Should NOT call loadChat (uses in-memory messages to avoid stale cache)
-      expect(loadChat).not.toHaveBeenCalled()
+      expect(loadChatUncached).not.toHaveBeenCalled()
 
       // Verify messages 1-3 are returned (correct context)
       expect(result).toHaveLength(3)
@@ -250,7 +250,7 @@ describe('prepareMessages', () => {
       )
 
       // Should NOT call loadChat (uses in-memory messages to avoid stale cache)
-      expect(loadChat).not.toHaveBeenCalled()
+      expect(loadChatUncached).not.toHaveBeenCalled()
 
       // Verify updated messages are returned with edited message
       expect(result).toHaveLength(3)
@@ -326,7 +326,7 @@ describe('prepareMessages', () => {
       // Should fallback to last assistant message (msg-2)
       expect(deleteMessagesFromIndex).toHaveBeenCalled()
       // Should NOT call loadChat (uses in-memory messages)
-      expect(loadChat).not.toHaveBeenCalled()
+      expect(loadChatUncached).not.toHaveBeenCalled()
       expect(result).toHaveLength(1)
     })
   })
@@ -434,6 +434,113 @@ describe('prepareMessages', () => {
       expect(result).toHaveLength(2)
       expect(result[0].id).toBe('msg-1')
       expect(result[1].id).toBe('msg-2')
+    })
+
+    // The assistant turn is written in the stream's onFinish, after the request
+    // context is gone, so the revalidateTag inside upsertMessage is swallowed and the
+    // 60s unstable_cache keeps serving history from before the reply. Reading through
+    // that cache hands the model a transcript where its own work never happened and it
+    // restarts the pipeline, so this path must never use the cached loader.
+    it('reads history through the uncached loader, not the 60s cache', async () => {
+      const newMessage: UIMessage = {
+        id: 'msg-2',
+        role: 'user',
+        parts: [{ type: 'text', text: 'keep going' }]
+      }
+
+      vi.mocked(loadChatUncached).mockResolvedValue({
+        id: chatId,
+        title: 'Existing Chat',
+        userId,
+        visibility: 'private',
+        createdAt: new Date(),
+        messages: [
+          { id: 'msg-1', role: 'user', parts: [{ type: 'text', text: 'hi' }] },
+          {
+            id: 'asst-1',
+            role: 'assistant',
+            parts: [{ type: 'text', text: 'script written' }]
+          }
+        ]
+      } as unknown as Awaited<ReturnType<typeof loadChatUncached>>)
+
+      const context: StreamContext = {
+        chatId,
+        userId,
+        modelId: 'gpt-4',
+        trigger: 'submit-message',
+        messageId: undefined,
+        initialChat: null,
+        isNewChat: false
+      }
+
+      const result = await prepareMessages(context, newMessage)
+
+      expect(loadChatUncached).toHaveBeenCalledWith(chatId, userId)
+      // The assistant's prior work must survive into the next turn.
+      expect(result.some(m => m.role === 'assistant')).toBe(true)
+    })
+    // Answering an askQuestion card resubmits the SAME assistant message, now carrying the
+    // tool result. Treating it as a new user turn would mint a fresh id and append a
+    // duplicate copy of the assistant's turn on every option the user picked.
+    it('updates the assistant turn in place on a tool-result continuation', async () => {
+      const assistantWithAnswer: UIMessage = {
+        id: 'asst-1',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'tool-askQuestion',
+            toolCallId: 'call-1',
+            state: 'output-available',
+            input: { question: 'Which style?' },
+            output: { selectedOptions: ['Cinematic B-roll'] }
+          } as never
+        ]
+      }
+
+      const existingChat: Chat & { messages: UIMessage[] } = {
+        id: chatId,
+        title: 'Existing Chat',
+        userId,
+        visibility: 'private',
+        createdAt: new Date(),
+        messages: [
+          { id: 'msg-1', role: 'user', parts: [{ type: 'text', text: 'make a video' }] },
+          { id: 'asst-1', role: 'assistant', parts: [] }
+        ]
+      }
+
+      vi.mocked(upsertMessage).mockResolvedValue({
+        id: 'asst-1',
+        chatId,
+        role: 'assistant',
+        metadata: {},
+        createdAt: new Date(),
+        updatedAt: null
+      })
+
+      const context: StreamContext = {
+        chatId,
+        userId,
+        modelId: 'gpt-4',
+        trigger: 'submit-message',
+        messageId: undefined,
+        initialChat: existingChat,
+        isNewChat: false
+      }
+
+      const result = await prepareMessages(context, assistantWithAnswer)
+
+      // Its own id survives, so the existing row is updated rather than duplicated.
+      expect(upsertMessage).toHaveBeenCalledWith(
+        chatId,
+        expect.objectContaining({ id: 'asst-1', role: 'assistant' }),
+        userId
+      )
+      expect(result).toHaveLength(2)
+      expect(result.filter(m => m.id === 'asst-1')).toHaveLength(1)
+      // And the answer the user picked is the version that reaches the model.
+      expect(result[1].parts).toHaveLength(1)
     })
   })
 })

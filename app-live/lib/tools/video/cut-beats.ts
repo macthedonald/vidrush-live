@@ -5,11 +5,21 @@ import { cutScriptIntoBeats } from '@/lib/engine/beats'
 import { kvGetJSON } from '@/lib/engine/kv'
 
 import type { VoiceoverHandle } from './generate-voiceover'
+import type { ScriptHandle } from './write-script'
 
 const cutBeatsSchema = z.object({
+  scriptId: z
+    .string()
+    .optional()
+    .describe(
+      'The scriptId returned by writeScript. ALWAYS prefer this over `script` — it segments the exact script already written, with no retyping and no truncation.'
+    ),
   script: z
     .string()
-    .describe('The clean narration script to segment (the output of writeScript)'),
+    .optional()
+    .describe(
+      'The clean narration script to segment. Only use this when there is no scriptId.'
+    ),
   topic: z.string().optional().describe('Working title / topic, for context'),
   format: z
     .enum(['16:9', '9:16', '1:1'])
@@ -46,9 +56,22 @@ function segmentationModel(chatModel: string): string {
 export function createCutBeatsTool(model: string) {
   return tool({
     description:
-      'Segment a finished narration script into an ordered storyboard of shots. Each shot carries its verbatim narration, a still/clip hint, a concrete footage search query, an intent describing what it must show, and estimated word-level caption timings. Run this after writeScript; then source footage for each shot with the sourceFootage tool.',
+      'Segment a finished narration script into an ordered storyboard of shots. Each shot carries its verbatim narration, a still/clip hint, a concrete footage search query, an intent describing what it must show, and estimated word-level caption timings. Pass the scriptId from writeScript — do NOT rewrite the script. Run this after writeScript; then source footage for each shot with the sourceFootage tool.',
     inputSchema: cutBeatsSchema,
     execute: async (input, { abortSignal }) => {
+      // Resolve the script by id so the storyboard is cut from the approved text rather
+      // than from whatever survived the model's context.
+      let script = (input.script || '').trim()
+      if (input.scriptId) {
+        const handle = await kvGetJSON<ScriptHandle>(`script:${input.scriptId}`)
+        if (handle?.script?.trim()) script = handle.script.trim()
+      }
+      if (!script) {
+        throw new Error(
+          'cutBeats needs either a scriptId from writeScript or the script text.'
+        )
+      }
+
       let voiceWords
       if (input.voiceoverId) {
         const handle = await kvGetJSON<VoiceoverHandle>(
@@ -58,7 +81,7 @@ export function createCutBeatsTool(model: string) {
       }
       const storyboard = await cutScriptIntoBeats(
         segmentationModel(model),
-        { ...input, voiceWords },
+        { ...input, script, voiceWords },
         abortSignal
       )
       return { state: 'complete' as const, ...storyboard }

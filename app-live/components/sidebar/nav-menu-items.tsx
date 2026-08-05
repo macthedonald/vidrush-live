@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 
 import {
   IconCompass as Compass,
+  IconPhoto as Photo,
   IconTrendingUp as TrendingUp,
   IconUser as User
 } from '@tabler/icons-react'
@@ -28,6 +29,14 @@ export function NavMenuItems() {
           <Link href="/niche-bender" className="flex items-center gap-2">
             <Compass className="size-4" />
             <span>Niche Bender</span>
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+      <SidebarMenuItem>
+        <SidebarMenuButton asChild isActive={pathname === '/thumbnails'}>
+          <Link href="/thumbnails" className="flex items-center gap-2">
+            <Photo className="size-4" />
+            <span>Thumbnail Studio</span>
           </Link>
         </SidebarMenuButton>
       </SidebarMenuItem>

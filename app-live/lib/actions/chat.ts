@@ -84,6 +84,29 @@ export async function loadChat(
 }
 
 /**
+ * Load a chat straight from the database, bypassing the 60s unstable_cache.
+ *
+ * The streaming path MUST use this. The assistant turn is written in the stream's
+ * onFinish, which runs after the response has been handed back — at that point the
+ * Next.js request context is gone and the revalidateTag inside upsertMessage is
+ * swallowed by safeRevalidateTag. The cache therefore keeps serving a snapshot that
+ * predates the assistant's reply, and the next turn feeds the model a history where
+ * its own work never happened, so it starts the pipeline over from scratch.
+ */
+export async function loadChatUncached(
+  chatId: string,
+  requestingUserId?: string
+): Promise<(Chat & { messages: UIMessage[] }) | null> {
+  const chat = await dbActions.loadChatWithMessages(chatId, requestingUserId)
+  if (!chat) return null
+
+  return {
+    ...chat,
+    messages: await signFilePartUrlsInMessages(chat.messages)
+  }
+}
+
+/**
  * Create a new chat
  * @param userId - Required. Pass userId to avoid duplicate auth calls
  */
